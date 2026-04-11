@@ -10,456 +10,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://images.unsplash.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --sky: #e8f4fb;
-      --sky-mid: #a8d4ec;
-      --sky-deep: #4a90c4;
-      --sky-dark: #1e4e7a;
-      --sky-darker: #0f2e4a;
-      --sun: #ffc83d;
-      --sun-soft: #ffe896;
-      --coral: #ff7a6c;
-      --mint: #7dcfa6;
-      --cream: #fffbf2;
-      --text: #1a3045;
-      --text-soft: #5a6b7d;
-      --border: #d9e8f2;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'DM Sans', -apple-system, sans-serif;
-      background: var(--cream);
-      color: var(--text);
-      line-height: 1.65;
-      -webkit-font-smoothing: antialiased;
-    }
-    img { max-width: 100%; display: block; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
-
-    /* Nav */
-    nav {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(255, 251, 242, 0.94);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 1rem 0;
-    }
-    .nav-inner { display: flex; justify-content: space-between; align-items: center; }
-    .logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
-    .logo-mark {
-      width: 46px; height: 46px;
-      background: var(--sky-dark);
-      border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .logo-mark::before {
-      content: ''; position: absolute; top: 6px; right: 6px;
-      width: 12px; height: 12px; border-radius: 50%;
-      background: var(--sun);
-    }
-    .logo-mark span {
-      font-family: 'Fredoka', sans-serif;
-      font-weight: 700;
-      color: white;
-      font-size: 1.05rem;
-      letter-spacing: -0.02em;
-      position: relative;
-    }
-    .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
-    .logo-text .name { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 1.15rem; color: var(--sky-dark); }
-    .logo-text .sub { font-size: 0.68rem; color: var(--text-soft); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; }
-    .nav-links { display: none; gap: 2.25rem; }
-    .nav-links a { color: var(--text); text-decoration: none; font-size: 0.925rem; font-weight: 500; transition: color 0.2s; }
-    .nav-links a:hover { color: var(--sky-deep); }
-    .nav-cta {
-      background: var(--sky-dark); color: white;
-      padding: 0.75rem 1.4rem; border-radius: 100px;
-      text-decoration: none; font-size: 0.875rem; font-weight: 600;
-      transition: all 0.2s;
-    }
-    .nav-cta:hover { background: var(--sky-deep); transform: translateY(-1px); }
-    @media (min-width: 920px) { .nav-links { display: flex; } }
-
-    /* Hero */
-    .hero {
-      position: relative;
-      min-height: 92vh;
-      display: flex;
-      align-items: center;
-      padding: 5rem 0;
-      background: var(--sky-darker);
-      overflow: hidden;
-    }
-    .hero-bg {
-      position: absolute; inset: 0;
-      background-image:
-        linear-gradient(120deg, rgba(15, 46, 74, 0.88) 0%, rgba(15, 46, 74, 0.55) 50%, rgba(30, 78, 122, 0.3) 100%),
-        url('https://images.unsplash.com/photo-1588072432836-e10032774350?w=1800&q=80&auto=format&fit=crop');
-      background-size: cover;
-      background-position: center;
-      z-index: 0;
-    }
-    .hero-content { position: relative; z-index: 2; color: white; max-width: 720px; }
-
-    /* Floating decorative shapes */
-    .shape { position: absolute; border-radius: 50%; z-index: 1; opacity: 0.7; }
-    .shape-1 { top: 12%; right: 6%; width: 90px; height: 90px; background: var(--sun); }
-    .shape-2 { top: 55%; right: 14%; width: 50px; height: 50px; background: var(--coral); }
-    .shape-3 { top: 25%; right: 22%; width: 28px; height: 28px; background: var(--mint); }
-    @media (max-width: 900px) { .shape { display: none; } }
-
-    .eyebrow {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      font-size: 0.8rem; font-weight: 600;
-      letter-spacing: 0.1em; text-transform: uppercase;
-      color: white;
-      padding: 0.6rem 1.1rem;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 100px;
-      margin-bottom: 1.75rem;
-      backdrop-filter: blur(8px);
-    }
-    .eyebrow::before {
-      content: ''; width: 8px; height: 8px; border-radius: 50%;
-      background: var(--sun);
-    }
-    .hero h1 {
-      font-family: 'Fredoka', sans-serif;
-      font-size: clamp(2.5rem, 6.5vw, 4.75rem);
-      font-weight: 600;
-      line-height: 1.05;
-      letter-spacing: -0.025em;
-      margin-bottom: 1.5rem;
-      max-width: 17ch;
-    }
-    .hero h1 .highlight {
-      display: inline-block;
-      position: relative;
-    }
-    .hero h1 .highlight::before {
-      content: ''; position: absolute; inset: 0 -10px;
-      background: var(--sun);
-      z-index: -1;
-      border-radius: 8px;
-      transform: rotate(-1.5deg);
-    }
-    .hero h1 .highlight span { color: var(--sky-darker); position: relative; z-index: 1; }
-    .hero p.lead {
-      font-size: 1.2rem;
-      color: rgba(255, 255, 255, 0.88);
-      max-width: 54ch;
-      margin-bottom: 2.5rem;
-    }
-    .hero-buttons { display: flex; flex-wrap: wrap; gap: 1rem; }
-    .btn-primary {
-      background: var(--sun); color: var(--sky-darker);
-      padding: 1.1rem 2.25rem; border-radius: 100px;
-      text-decoration: none; font-weight: 700;
-      transition: all 0.2s; display: inline-block;
-      box-shadow: 0 8px 24px rgba(255, 200, 61, 0.35);
-    }
-    .btn-primary:hover { background: white; transform: translateY(-2px); box-shadow: 0 12px 32px rgba(255, 255, 255, 0.25); }
-    .btn-secondary {
-      background: transparent; color: white;
-      padding: 1.1rem 2.25rem; border-radius: 100px;
-      border: 2px solid rgba(255, 255, 255, 0.4);
-      text-decoration: none; font-weight: 600;
-      transition: all 0.2s; display: inline-block;
-    }
-    .btn-secondary:hover { background: white; color: var(--sky-darker); border-color: white; }
-
-    /* Sections */
-    section { padding: 6rem 0; position: relative; }
-    .section-eyebrow {
-      display: inline-block;
-      font-size: 0.75rem; font-weight: 700;
-      letter-spacing: 0.15em; text-transform: uppercase;
-      color: var(--coral);
-      margin-bottom: 1rem;
-    }
-    h2 {
-      font-family: 'Fredoka', sans-serif;
-      font-size: clamp(2rem, 4.5vw, 3.25rem);
-      font-weight: 600;
-      line-height: 1.1;
-      letter-spacing: -0.015em;
-      color: var(--sky-dark);
-      margin-bottom: 1.5rem;
-      max-width: 22ch;
-    }
-    .section-intro { font-size: 1.1rem; color: var(--text-soft); max-width: 60ch; margin-bottom: 3.5rem; }
-
-    /* About */
-    .about-grid { display: grid; grid-template-columns: 1fr; gap: 4rem; align-items: center; }
-    @media (min-width: 900px) { .about-grid { grid-template-columns: 1.1fr 1fr; gap: 5rem; } }
-    .about-image-wrap {
-      position: relative;
-      padding: 1.5rem 1.5rem 0 0;
-    }
-    .about-image-wrap::before {
-      content: ''; position: absolute; top: 0; right: 0;
-      width: 85%; height: 85%;
-      background: var(--sun);
-      border-radius: 28px;
-      opacity: 0.25;
-      z-index: 0;
-    }
-    .about-image {
-      position: relative;
-      border-radius: 28px;
-      overflow: hidden;
-      aspect-ratio: 5 / 6;
-      background: var(--sky);
-      z-index: 1;
-    }
-    .about-image img { width: 100%; height: 100%; object-fit: cover; }
-    .since-badge {
-      position: absolute;
-      top: -16px; right: -16px;
-      width: 110px; height: 110px;
-      background: var(--coral);
-      color: white;
-      border-radius: 50%;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      font-family: 'Fredoka', sans-serif;
-      z-index: 3;
-      box-shadow: 0 10px 30px rgba(255, 122, 108, 0.35);
-      transform: rotate(8deg);
-    }
-    .since-badge .year {
-      font-size: 1.75rem;
-      font-weight: 700;
-      line-height: 1;
-    }
-    .since-badge .label {
-      font-size: 0.65rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-top: 0.15rem;
-    }
-
-    .stats-card {
-      background: var(--sky);
-      border: 2px solid var(--border);
-      border-radius: 24px;
-      padding: 2rem;
-      margin-top: 2.5rem;
-    }
-    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.75rem; }
-    .stat-value {
-      font-family: 'Fredoka', sans-serif;
-      font-size: 2.25rem;
-      font-weight: 700;
-      color: var(--sky-dark);
-      line-height: 1;
-      margin-bottom: 0.35rem;
-    }
-    .stat-label { font-size: 0.825rem; color: var(--text-soft); font-weight: 500; }
-
-    /* Programs */
-    .programs { background: var(--sky); }
-    .programs-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
-    @media (min-width: 640px) { .programs-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 1000px) { .programs-grid { grid-template-columns: repeat(3, 1fr); } }
-    .program-card {
-      background: white;
-      border-radius: 24px;
-      overflow: hidden;
-      transition: all 0.3s;
-      border: 2px solid transparent;
-    }
-    .program-card:hover { transform: translateY(-6px); border-color: var(--sun); box-shadow: 0 24px 48px rgba(30, 78, 122, 0.12); }
-    .program-image {
-      aspect-ratio: 16 / 10;
-      background: var(--sky);
-      overflow: hidden;
-      position: relative;
-    }
-    .program-image img {
-      width: 100%; height: 100%; object-fit: cover;
-      transition: transform 0.5s;
-    }
-    .program-card:hover .program-image img { transform: scale(1.05); }
-    .program-body { padding: 2rem; }
-    .program-age {
-      display: inline-block;
-      font-size: 0.75rem; font-weight: 700;
-      color: var(--coral); letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 0.35rem 0.85rem;
-      background: rgba(255, 122, 108, 0.1);
-      border-radius: 100px;
-      margin-bottom: 1rem;
-    }
-    .program-name {
-      font-family: 'Fredoka', sans-serif;
-      font-size: 1.5rem; font-weight: 600;
-      color: var(--sky-dark);
-      margin-bottom: 0.75rem;
-    }
-    .program-desc { font-size: 0.95rem; color: var(--text-soft); }
-
-    /* Why Us */
-    .why-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
-    @media (min-width: 640px) { .why-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 1000px) { .why-grid { grid-template-columns: repeat(4, 1fr); } }
-    .why-card {
-      padding: 2rem 1.75rem;
-      background: white;
-      border: 2px solid var(--border);
-      border-radius: 22px;
-      transition: all 0.3s;
-    }
-    .why-card:hover { border-color: var(--sky-deep); transform: translateY(-4px); }
-    .why-num {
-      font-family: 'Fredoka', sans-serif;
-      font-size: 2rem; font-weight: 700;
-      color: var(--sun);
-      line-height: 1;
-      margin-bottom: 0.75rem;
-    }
-    .why-card h3 {
-      font-family: 'Fredoka', sans-serif;
-      font-size: 1.2rem; font-weight: 600;
-      color: var(--sky-dark); margin-bottom: 0.75rem;
-    }
-    .why-card p { color: var(--text-soft); font-size: 0.925rem; }
-
-    /* Testimonials */
-    .testimonials {
-      background: linear-gradient(180deg, var(--cream) 0%, var(--sky) 100%);
-    }
-    .test-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
-    @media (min-width: 860px) { .test-grid { grid-template-columns: repeat(3, 1fr); } }
-    .test-card {
-      background: white;
-      border: 2px solid var(--border);
-      border-radius: 22px;
-      padding: 2rem;
-      position: relative;
-    }
-    .test-card::before {
-      content: '"';
-      position: absolute; top: -8px; left: 1.75rem;
-      width: 40px; height: 40px;
-      background: var(--sun);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Fredoka', sans-serif;
-      font-size: 1.75rem; font-weight: 700;
-      color: var(--sky-dark);
-      line-height: 1;
-      padding-top: 4px;
-    }
-    .test-quote {
-      font-size: 1rem;
-      line-height: 1.65;
-      margin-top: 1.5rem;
-      margin-bottom: 1.5rem;
-      color: var(--text);
-    }
-    .test-author { font-weight: 700; font-size: 0.95rem; color: var(--sky-dark); font-family: 'Fredoka', sans-serif; }
-    .test-relation { font-size: 0.825rem; color: var(--text-soft); }
-
-    /* CTA band */
-    .cta-band {
-      background: var(--sky-darker);
-      color: white;
-      padding: 5rem 0;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .cta-band::before {
-      content: ''; position: absolute; top: -80px; left: 8%;
-      width: 240px; height: 240px; border-radius: 50%;
-      background: rgba(255, 200, 61, 0.15);
-    }
-    .cta-band::after {
-      content: ''; position: absolute; bottom: -100px; right: 12%;
-      width: 300px; height: 300px; border-radius: 50%;
-      background: rgba(255, 122, 108, 0.12);
-    }
-    .cta-band .container { position: relative; z-index: 2; max-width: 760px; }
-    .cta-band .section-eyebrow { color: var(--sun); }
-    .cta-band h2 { color: white; margin: 0 auto 1.25rem; }
-    .cta-band h2 .highlight { color: var(--sun); }
-    .cta-band p { font-size: 1.15rem; color: rgba(255, 255, 255, 0.85); max-width: 52ch; margin: 0 auto 2.5rem; }
-    .cta-band .hero-buttons { justify-content: center; }
-    .cta-band .btn-secondary { color: white; border-color: rgba(255, 255, 255, 0.5); }
-    .cta-band .btn-secondary:hover { background: white; color: var(--sky-darker); }
-
-    /* Footer */
-    footer {
-      background: var(--cream);
-      border-top: 1px solid var(--border);
-      padding: 4rem 0 2rem;
-    }
-    .footer-grid {
-      display: grid; grid-template-columns: 1fr; gap: 3rem;
-      padding-bottom: 3rem;
-      border-bottom: 1px solid var(--border);
-    }
-    @media (min-width: 740px) { .footer-grid { grid-template-columns: 1.5fr 1fr 1fr; } }
-    .footer-brand .logo { margin-bottom: 1rem; }
-    .footer-brand p { color: var(--text-soft); font-size: 0.925rem; max-width: 32ch; margin-bottom: 1rem; }
-    .footer-socials { display: flex; gap: 0.75rem; }
-    .footer-socials a {
-      width: 38px; height: 38px; border-radius: 10px;
-      background: var(--sky);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--sky-dark); text-decoration: none;
-      font-size: 0.8rem; font-weight: 700;
-      transition: all 0.2s;
-    }
-    .footer-socials a:hover { background: var(--sky-dark); color: white; }
-    .footer-col h4 {
-      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em;
-      color: var(--coral); margin-bottom: 1rem; font-weight: 700;
-    }
-    .footer-col p, .footer-col a {
-      display: block; color: var(--text-soft);
-      font-size: 0.925rem; text-decoration: none;
-      margin-bottom: 0.5rem;
-    }
-    .footer-col a:hover { color: var(--sky-dark); }
-    .footer-bottom {
-      padding-top: 2rem;
-      text-align: center;
-      font-size: 0.8rem;
-      color: var(--text-soft);
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
   <nav>
     <div class="container nav-inner">
-      <a href="#" class="logo">
-        <div class="logo-mark"><span>PG</span></div>
+      <a href="index.html" class="logo">
+        <div class="logo-mark">
+          <img class="logo-img" data-slot="logo" alt="" />
+          <span class="slot-fallback">PG</span>
+        </div>
         <div class="logo-text">
           <span class="name">Playway Grammar</span>
           <span class="sub">Est. 1983 · Karachi</span>
         </div>
       </a>
       <div class="nav-links">
-        <a href="#about">About</a>
-        <a href="#programs">Programs</a>
-        <a href="#why-us">Why Us</a>
-        <a href="#contact">Contact</a>
+        <a href="index.html" class="active">Home</a>
+        <a href="about.html">About</a>
+        <a href="programs.html">Programs</a>
+        <a href="admissions.html">Admissions</a>
       </div>
-      <a href="#admissions" class="nav-cta">Book a Tour</a>
+      <a href="admissions.html" class="nav-cta">Book a Tour</a>
     </div>
   </nav>
 
-  <section class="hero">
-    <div class="hero-bg"></div>
+  <section class="hero" data-slot-bg="hero-home">
     <div class="shape shape-1"></div>
     <div class="shape shape-2"></div>
     <div class="shape shape-3"></div>
@@ -468,18 +45,18 @@
       <h1>Where high standards meet <span class="highlight"><span>happy childhoods</span></span>.</h1>
       <p class="lead">For over 40 years, Playway Grammar has been educating generations of Karachi's children — pairing academic excellence with the joy and warmth every child deserves.</p>
       <div class="hero-buttons">
-        <a href="#admissions" class="btn-primary">Book a Campus Tour</a>
-        <a href="#programs" class="btn-secondary">Our Programs</a>
+        <a href="admissions.html" class="btn-primary">Book a Campus Tour</a>
+        <a href="programs.html" class="btn-secondary">Our Programs</a>
       </div>
     </div>
   </section>
 
-  <section id="about">
+  <section>
     <div class="container">
       <div class="about-grid">
         <div class="about-image-wrap">
           <div class="about-image">
-            <img src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1200&q=80&auto=format&fit=crop" alt="Children learning at school" loading="lazy" />
+            <img data-slot="about-story" src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1200&q=80&auto=format&fit=crop" alt="Children learning at school" loading="lazy" />
           </div>
           <div class="since-badge">
             <div class="year">42+</div>
@@ -499,12 +76,15 @@
               <div><div class="stat-value">A+</div><div class="stat-label">Parent Satisfaction</div></div>
             </div>
           </div>
+          <div style="margin-top: 2rem;">
+            <a href="about.html" class="btn-primary">Read Our Story →</a>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="programs" id="programs">
+  <section class="programs">
     <div class="container">
       <div class="section-eyebrow">Our Programs</div>
       <h2>A thoughtful path from first steps to confident scholars.</h2>
@@ -513,7 +93,7 @@
       <div class="programs-grid">
         <div class="program-card">
           <div class="program-image">
-            <img src="https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=800&q=80&auto=format&fit=crop" alt="Early years classroom" loading="lazy" />
+            <img data-slot="program-1" src="https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=800&q=80&auto=format&fit=crop" alt="Early years classroom" loading="lazy" />
           </div>
           <div class="program-body">
             <div class="program-age">Ages 3 – 5</div>
@@ -523,7 +103,7 @@
         </div>
         <div class="program-card">
           <div class="program-image">
-            <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80&auto=format&fit=crop" alt="Primary students learning" loading="lazy" />
+            <img data-slot="program-2" src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80&auto=format&fit=crop" alt="Primary students learning" loading="lazy" />
           </div>
           <div class="program-body">
             <div class="program-age">Ages 5 – 11</div>
@@ -533,7 +113,7 @@
         </div>
         <div class="program-card">
           <div class="program-image">
-            <img src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=800&q=80&auto=format&fit=crop" alt="Secondary books" loading="lazy" />
+            <img data-slot="program-3" src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=800&q=80&auto=format&fit=crop" alt="Secondary books" loading="lazy" />
           </div>
           <div class="program-body">
             <div class="program-age">Ages 11+</div>
@@ -542,10 +122,14 @@
           </div>
         </div>
       </div>
+
+      <div style="text-align: center; margin-top: 3rem;">
+        <a href="programs.html" class="btn-primary">See Full Programs →</a>
+      </div>
     </div>
   </section>
 
-  <section id="why-us">
+  <section>
     <div class="container">
       <div class="section-eyebrow">Why Playway</div>
       <h2>Four reasons families have trusted us for 40+ years.</h2>
@@ -602,24 +186,27 @@
     </div>
   </section>
 
-  <section class="cta-band" id="admissions">
+  <section class="cta-band">
     <div class="container">
       <div class="section-eyebrow">Admissions Open</div>
       <h2>Come see Playway for <span class="highlight">yourself</span>.</h2>
       <p>Schedule a campus tour and spend 30 minutes with our team. Meet the teachers, see the classrooms, and get a feel for what has kept families coming back for 40+ years.</p>
       <div class="hero-buttons">
-        <a href="#contact" class="btn-primary">Book a Campus Tour</a>
-        <a href="#contact" class="btn-secondary">Send a Message</a>
+        <a href="admissions.html" class="btn-primary">Book a Campus Tour</a>
+        <a href="admissions.html" class="btn-secondary">Send a Message</a>
       </div>
     </div>
   </section>
 
-  <footer id="contact">
+  <footer>
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <a href="#" class="logo">
-            <div class="logo-mark"><span>PG</span></div>
+          <a href="index.html" class="logo">
+            <div class="logo-mark">
+              <img class="logo-img" data-slot="logo" alt="" />
+              <span class="slot-fallback">PG</span>
+            </div>
             <div class="logo-text">
               <span class="name">Playway Grammar</span>
               <span class="sub">Est. 1983 · Karachi</span>
@@ -648,5 +235,8 @@
     </div>
   </footer>
 
+  <script src="../supabase-config.js"></script>
+  <script src="../shared/image-loader.js"></script>
+  <script>CubicoImages.init("playway-grammar");</script>
 </body>
 </html>

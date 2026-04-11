@@ -2,171 +2,254 @@
 
 Private repository for school website prototypes — used as pitch demos to land new clients.
 
-Each folder is a self-contained, deploy-ready website. One GitHub repo + one Vercel project hosts them all.
+Each school is a self-contained, deploy-ready website with **4 public pages** (Home, About, Programs, Admissions) and **1 hidden admin page** for uploading real school imagery via Supabase.
 
 ---
 
-## 📁 What's in this repo
+## What's in this repo
 
 ```
 school-prototypes/
-├── .gitignore
-├── README.md              ← you are here
-├── vercel.json            ← clean URLs + noindex (hides from Google)
-├── index.html             ← PRIVATE internal dashboard (do not share)
-├── msl-clifton/
-│   └── index.html         ← MSL Clifton prototype
-└── playway-grammar/
-    └── index.html         ← Playway Grammar prototype
+├── README.md
+├── vercel.json                    ← clean URLs + noindex headers
+├── supabase-config.js             ← paste your Supabase keys here ONCE
+├── index.html                     ← PRIVATE internal dashboard (do not share)
+│
+├── shared/                        ← shared infrastructure (don't duplicate per school)
+│   ├── image-loader.js            ← swaps placeholder images with uploaded ones
+│   ├── admin-uploader.js          ← admin upload UI logic (used by every admin.html)
+│   └── admin-styles.css           ← admin page styles
+│
+├── msl-clifton/                   ← MSL Clifton prototype
+│   ├── index.html                 ← Home
+│   ├── about.html                 ← About / Story / Leadership
+│   ├── programs.html              ← Programs / Curriculum
+│   ├── admissions.html            ← Admissions / Apply / Contact
+│   ├── admin.html                 ← Image upload page (password-gated)
+│   └── styles.css                 ← School-specific design
+│
+└── playway-grammar/               ← Playway Grammar prototype
+    ├── index.html
+    ├── about.html
+    ├── programs.html
+    ├── admissions.html
+    ├── admin.html
+    └── styles.css
 ```
 
-**Important:** These are plain HTML files with embedded CSS. No build step, no `npm install`, no dependencies. They just work.
+**No build step.** Plain HTML + CSS + a few small JS files. No `npm install`, no dependencies, no framework.
 
 ---
 
-## 🏃 How to run these files
+## The Rule (every school follows this template)
 
-### Option 1 — Just open them (simplest)
+Every new school folder MUST contain exactly these 6 files:
 
-Double-click any `index.html` file on your computer. It opens in your browser. Done.
+| File | Purpose |
+|---|---|
+| `index.html` | Home page — hero, story teaser, programs preview, why us, testimonials, CTA |
+| `about.html` | About page — full story, values, principal, campus gallery |
+| `programs.html` | Programs page — full program details + curriculum approach |
+| `admissions.html` | Admissions page — process steps, contact form, school info |
+| `admin.html` | Hidden admin uploader (password-gated, never linked from nav) |
+| `styles.css` | School-specific design — colors, fonts, layout flourishes |
 
-This works for previewing, but some browsers block certain features when opening files directly (`file://` URLs). For a proper preview, use Option 2.
+Every school uses the **same 20 image slots** so the admin page is identical:
 
-### Option 2 — Run a local server (recommended for previewing)
+| Section | Slots |
+|---|---|
+| Brand | `logo` |
+| Hero backgrounds | `hero-home`, `hero-about`, `hero-programs`, `hero-admissions` |
+| About page | `about-story`, `principal-photo`, `campus-1`, `campus-2`, `campus-3` |
+| Programs page | `program-1`, `program-2`, `program-3`, `program-4` |
+| Gallery | `gallery-1`, `gallery-2`, `gallery-3`, `gallery-4` |
+| Admissions page | `admissions-photo` |
 
-Open your terminal inside the repo folder and run **one** of these:
+**Design changes per school. Structure does not.** That's the whole point — every prototype is consistent under the hood, so the admin page works the same way for every client.
+
+---
+
+## One-time setup — Supabase
+
+Image uploads are powered by Supabase (free tier — generous, never charges for pitch demos).
+
+### 1. Create the Supabase project (5 minutes)
+
+1. Go to https://supabase.com → **New Project** → name it `cubico-schools`
+2. Pick a region close to Karachi (Singapore or Mumbai)
+3. Set a database password and save it somewhere
+4. Wait ~60 seconds for the project to provision
+
+### 2. Run the SQL setup (one click)
+
+Open **SQL Editor → New query** in the Supabase dashboard, paste this, click **Run**:
+
+```sql
+-- Bucket for all school images (every school uses the same bucket,
+-- with a folder prefix per school slug)
+insert into storage.buckets (id, name, public)
+values ('school-images', 'school-images', true)
+on conflict (id) do nothing;
+
+-- Storage policies: public read + public write
+create policy "Public read school-images"
+  on storage.objects for select
+  using (bucket_id = 'school-images');
+create policy "Public insert school-images"
+  on storage.objects for insert
+  with check (bucket_id = 'school-images');
+create policy "Public update school-images"
+  on storage.objects for update
+  using (bucket_id = 'school-images');
+create policy "Public delete school-images"
+  on storage.objects for delete
+  using (bucket_id = 'school-images');
+
+-- Table mapping (school, slot) -> uploaded image URL
+create table if not exists public.school_images (
+  school_slug  text        not null,
+  slot         text        not null,
+  url          text        not null,
+  updated_at   timestamptz not null default now(),
+  primary key (school_slug, slot)
+);
+
+alter table public.school_images enable row level security;
+
+create policy "Public read school_images"
+  on public.school_images for select
+  using (true);
+create policy "Public insert school_images"
+  on public.school_images for insert
+  with check (true);
+create policy "Public update school_images"
+  on public.school_images for update
+  using (true);
+create policy "Public delete school_images"
+  on public.school_images for delete
+  using (true);
+```
+
+### 3. Paste your Supabase keys into `supabase-config.js`
+
+1. Supabase Dashboard → **Project Settings → API**
+2. Copy the **Project URL** and the **anon public** key
+3. Open `/supabase-config.js` in this repo and replace the placeholders:
+
+```js
+window.CUBICO_CONFIG = {
+  SUPABASE_URL:      "https://YOUR-PROJECT.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOi...",
+  ADMIN_PASSWORD:    "change-me-now",   // password for admin pages
+  STORAGE_BUCKET:    "school-images",   // leave as is
+};
+```
+
+**The anon key is safe to commit.** It's designed to be public — security comes from RLS policies + the admin password gate.
+
+That's it. Forever. Every new school you create after this will use the same Supabase project — no further setup required.
+
+---
+
+## Running locally
+
+Open your terminal in the repo folder and run **one** of these:
 
 ```bash
-# If you have Python 3 installed (most Macs and Linux already do)
+# Python (most Macs and Linux already have it)
 python3 -m http.server 8000
 
-# If you have Node.js installed
+# Node.js
 npx serve
 
-# If you use VS Code, install the "Live Server" extension and click "Go Live"
+# VS Code: install "Live Server" extension, click "Go Live"
 ```
 
-Then open your browser to:
-
+Then open:
 - `http://localhost:8000/` → internal dashboard
-- `http://localhost:8000/msl-clifton/` → MSL demo
-- `http://localhost:8000/playway-grammar/` → Playway demo
-
-Press `Ctrl+C` in the terminal to stop the server.
-
-### Option 3 — Deploy to Vercel (what you actually want for pitching)
-
-See the **Deployment** section below.
+- `http://localhost:8000/msl-clifton/` → MSL home
+- `http://localhost:8000/msl-clifton/about.html` → MSL about
+- `http://localhost:8000/msl-clifton/admin.html` → MSL admin uploader
+- `http://localhost:8000/playway-grammar/` → Playway home
+- … etc
 
 ---
 
-## 🚀 Deployment — step by step
+## Deploying to Vercel
 
-### First-time setup (do this once)
+If the repo is already pushed to GitHub, just connect Vercel to it once:
 
-**1. Create a private GitHub repo**
+1. https://vercel.com → **Add New… → Project**
+2. Find `school-prototypes` in the list → **Import**
+3. Framework Preset: **Other** (do not pick a framework — it's static HTML)
+4. Build Command: leave **empty**
+5. Output Directory: leave **empty**
+6. Click **Deploy**
 
-Go to [github.com/new](https://github.com/new):
-- Repository name: `cubico-school-demos`
-- Set to **Private** (important — you don't want clients finding other schools' demos)
-- Don't initialize with a README (we already have one)
-- Click "Create repository"
+After that, every `git push` to `main` auto-deploys in ~30 seconds. No manual upload.
 
-**2. Push this folder to GitHub**
+Optional: add a custom subdomain like `demos.cubico.com` in Vercel → Project Settings → Domains.
 
-Open terminal in this `school-prototypes` folder and run:
+---
+
+## Adding a new school (the workflow)
+
+Copy `msl-clifton` or `playway-grammar` as a starting point:
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit: MSL Clifton + Playway Grammar prototypes"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/cubico-school-demos.git
-git push -u origin main
+cp -r msl-clifton beaconhouse-pecs
+cd beaconhouse-pecs
 ```
 
-Replace `YOUR-USERNAME` with your actual GitHub username.
+Then in every file:
 
-**3. Connect to Vercel**
+1. **`index.html`, `about.html`, `programs.html`, `admissions.html`** — update the copy: school name, taglines, programs, addresses, phone numbers, testimonials. Leave the structure alone.
+2. **`styles.css`** — change the colour palette (`--cream`, `--burgundy`, etc), the Google Font, and any layout flourishes that should feel different for this school.
+3. **`admin.html`** — change ONE line:
+   ```js
+   window.CUBICO_SCHOOL = { slug: "beaconhouse-pecs", name: "Beaconhouse PECS" };
+   ```
+4. **All public pages** — change the bottom script call to match the slug:
+   ```js
+   CubicoImages.init("beaconhouse-pecs");
+   ```
+5. **Root `index.html`** — add a card for the new school in the demo grid
 
-- Go to [vercel.com](https://vercel.com) and log in with your GitHub account
-- Click **"Add New... → Project"**
-- Find `cubico-school-demos` in the list and click **Import**
-- Framework preset: **Other** (Vercel will auto-detect static HTML)
-- Leave all other settings as default
-- Click **Deploy**
+Then upload images via the admin page and `git push`. Done.
 
-In about 30 seconds, you'll get a live URL like `cubico-school-demos.vercel.app`.
-
-**4. Test your live URLs**
-
-- `https://cubico-school-demos.vercel.app/` → internal dashboard (keep private)
-- `https://cubico-school-demos.vercel.app/msl-clifton/` → MSL pitch link ✉️
-- `https://cubico-school-demos.vercel.app/playway-grammar/` → Playway pitch link ✉️
-
-### Going forward (after first setup)
-
-Every time you add a new school or edit a file, just:
-
-```bash
-git add .
-git commit -m "Add new school prototype"
-git push
-```
-
-Vercel auto-deploys within 30 seconds. No manual upload needed.
+The `slug` you use becomes the folder prefix in Supabase Storage and the row key in `school_images`. Use lowercase, dashes, no spaces.
 
 ---
 
-## ➕ How to add a new school
+## How the image system works
 
-1. Create a new folder with a URL-safe name (lowercase, dashes, no spaces):
-   ```
-   mkdir beaconhouse-pecs
-   ```
-
-2. Copy one of the existing prototypes as a starting point:
-   ```bash
-   cp msl-clifton/index.html beaconhouse-pecs/index.html
-   ```
-
-3. Customize the content, colors, school name, and contact details inside `beaconhouse-pecs/index.html`
-
-4. Add a card for it in the root `index.html` (so you can find it in your internal dashboard)
-
-5. Commit and push:
-   ```bash
-   git add .
-   git commit -m "Add Beaconhouse PECS prototype"
-   git push
-   ```
-
-The new demo is live at `your-project.vercel.app/beaconhouse-pecs/` within a minute.
+1. **Public pages** (Home/About/etc) ship with placeholder Unsplash images. Each `<img>` and hero background has a `data-slot="..."` or `data-slot-bg="..."` attribute.
+2. On page load, `shared/image-loader.js` fetches `school_images` from Supabase for the current school slug and swaps any `<img src>` and CSS `--slot-image` variables for the uploaded URLs.
+3. Repeat visitors get instant loading via `localStorage` caching (5 min TTL). First visit shows placeholders for ~200ms before real images load.
+4. The **admin page** (`admin.html`) is password-gated, lists all 20 slots, and lets you upload files directly to Supabase Storage. Each upload also writes a row to `school_images` so the public pages can find it.
+5. Uploads bust the cache so the new image shows up on the live site within seconds.
 
 ---
 
-## 💡 Pro tips
+## Pro tips
 
-**Use a custom subdomain** — once you're happy with the setup, point a subdomain like `demos.cubico.com` at the Vercel project. Your pitch links become:
-- `demos.cubico.com/msl-clifton/`
-- `demos.cubico.com/playway-grammar/`
+**Only share specific school links.** Never share the root `/` URL — that's your internal dashboard and lists every school. Send principals only their `/school-name/` link.
 
-This looks far more professional in a cold email than a `vercel.app` URL, and reinforces the Cubico brand every time a principal clicks.
+**Never share the `/admin.html` URL** with anyone. It's password-gated but the URL itself shouldn't get out.
 
-**Only share the specific school link** — never share the root URL (`/`). The root page is your internal dashboard and lists all demos. Sharing it would let one school discover the others.
+**Designs should feel distinct.** The MSL and Playway prototypes deliberately look like they came from different studios — different fonts, palettes, layouts. When a principal asks "what other schools have you designed for?", each one should feel custom, not templated.
 
-**Keep designs visually distinct** — the MSL and Playway prototypes deliberately look like they came from different studios (different fonts, colors, layouts). When a principal asks "can we see other schools you've designed for?", each one feels custom, not templated.
-
-**Noindex is already set** — `vercel.json` adds `X-Robots-Tag: noindex, nofollow` headers so these demos never appear in Google search results.
+**Noindex is set everywhere.** `vercel.json` adds `X-Robots-Tag: noindex, nofollow` headers. Every HTML file also has the `<meta name="robots">` tag. These demos should never appear in Google results.
 
 ---
 
-## 🛠️ Tech stack
+## Tech stack
 
-- Plain HTML5 + CSS3 (embedded, no external stylesheets)
-- Google Fonts (loaded via CDN)
-- No JavaScript frameworks
-- No build step
+- Plain HTML5 + CSS3 (one stylesheet per school)
+- ~600 lines of vanilla JS for upload + image loading
+- Google Fonts via CDN
+- Supabase for image storage + URL persistence
+- No frameworks, no build step, no `node_modules`
 - Hosted on Vercel (static file hosting)
 
 That's it. Minimal, fast, and dead simple to maintain.

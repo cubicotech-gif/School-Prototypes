@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>MSL School — Admin · Image Uploader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/admin-styles.css" />
+</head>
+<body>
+
+  <!-- Password gate -->
+  <div id="password-gate">
+    <div class="gate-card">
+      <div class="gate-tag">Cubico · Admin</div>
+      <h2>MSL School — Image Uploader</h2>
+      <p>Enter the admin password to upload school images. Images appear on the live site within seconds.</p>
+      <form id="password-form">
+        <input type="password" id="password-input" placeholder="Admin password" autocomplete="current-password" required />
+        <button type="submit">Unlock</button>
+        <div id="password-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin UI -->
+  <div class="admin-container">
+    <header class="admin-header">
+      <div class="brand-tag">Cubico · Admin</div>
+      <h1><span id="school-name">MSL School</span> — Image Uploader</h1>
+      <p>Upload real school images for each slot below. Each upload replaces the placeholder on the live site within seconds. You can re-upload anytime.</p>
+      <div class="header-links">
+        <a href="index.html">← Home</a>
+        <a href="about.html">About</a>
+        <a href="programs.html">Programs</a>
+        <a href="admissions.html">Admissions</a>
+      </div>
+    </header>
+
+    <main id="slots-root"></main>
+  </div>
+
+  <script>
+    // School identity for this admin page
+    window.CUBICO_SCHOOL = { slug: "msl-clifton", name: "MSL School Clifton" };
+  </script>
+  <script src="../supabase-config.js"></script>
+  <script src="../shared/admin-uploader.js"></script>
+</body>
+</html>

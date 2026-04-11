@@ -12,10 +12,12 @@
     :root {
       --bg: #0a0e1a;
       --surface: #121829;
+      --surface-2: #161d33;
       --border: #1f2942;
       --text: #e6e9f2;
       --text-dim: #8a94b0;
       --accent: #ff6b5b;
+      --success: #7dcfa6;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -24,8 +26,9 @@
       color: var(--text);
       min-height: 100vh;
       padding: 4rem 1.5rem;
+      -webkit-font-smoothing: antialiased;
     }
-    .container { max-width: 720px; margin: 0 auto; }
+    .container { max-width: 760px; margin: 0 auto; }
     .brand {
       font-size: 0.75rem;
       font-weight: 600;
@@ -40,33 +43,97 @@
       letter-spacing: -0.02em;
       margin-bottom: 0.75rem;
     }
-    .subtitle { color: var(--text-dim); font-size: 1.05rem; margin-bottom: 3rem; }
-    .demo-grid { display: flex; flex-direction: column; gap: 1rem; }
-    .demo-card {
+    .subtitle { color: var(--text-dim); font-size: 1.05rem; margin-bottom: 3rem; line-height: 1.6; max-width: 60ch; }
+
+    .demo-grid { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .demo-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .demo-block-main {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
+      padding: 1.5rem 1.75rem;
+      gap: 1rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .demo-block-main:hover { background: var(--surface-2); }
+    .demo-info h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .demo-info p { color: var(--text-dim); font-size: 0.875rem; }
+    .arrow { color: var(--accent); font-size: 1.25rem; flex-shrink: 0; padding-top: 0.15rem; }
+
+    .demo-pages {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0 1.75rem 1.5rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+      margin-top: 0.25rem;
+    }
+    .demo-pages a {
+      display: inline-block;
+      padding: 0.4rem 0.85rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .demo-pages a:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+    .demo-pages a.admin {
+      background: rgba(255, 107, 91, 0.1);
+      border-color: rgba(255, 107, 91, 0.25);
+      color: var(--accent);
+    }
+    .demo-pages a.admin:hover { background: rgba(255, 107, 91, 0.18); }
+
+    .system-status {
+      margin-top: 3rem;
       padding: 1.5rem 1.75rem;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 14px;
-      text-decoration: none;
-      color: var(--text);
-      transition: all 0.2s ease;
     }
-    .demo-card:hover {
-      border-color: var(--accent);
-      transform: translateY(-2px);
+    .system-status .status-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-bottom: 0.85rem;
     }
-    .demo-info h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
-    .demo-info p { color: var(--text-dim); font-size: 0.875rem; }
-    .arrow { color: var(--accent); font-size: 1.25rem; }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      font-size: 0.875rem;
+    }
+    .status-row + .status-row { border-top: 1px solid var(--border); }
+    .status-row .key { color: var(--text-dim); }
+    .status-row .val { color: var(--text); font-weight: 500; font-family: 'SF Mono', Menlo, monospace; font-size: 0.78rem; }
+
     footer {
-      margin-top: 4rem;
+      margin-top: 3rem;
       padding-top: 2rem;
       border-top: 1px solid var(--border);
       color: var(--text-dim);
       font-size: 0.8rem;
+      text-align: center;
     }
   </style>
 </head>
@@ -74,28 +141,68 @@
   <div class="container">
     <div class="brand">Cubico Technologies · Internal</div>
     <h1>School Website Prototypes</h1>
-    <p class="subtitle">Private demo index. Do not share this page — share only individual demo links with each school.</p>
+    <p class="subtitle">Private demo index. Do not share this page with clients — share only the individual school links below. Each prototype has 4 public pages plus a hidden admin page for uploading school imagery.</p>
 
     <div class="demo-grid">
-      <a class="demo-card" href="/msl-clifton/">
-        <div class="demo-info">
-          <h3>MSL School · Clifton</h3>
-          <p>Mariam's School of Learning — Preschool & Primary</p>
-        </div>
-        <span class="arrow">→</span>
-      </a>
 
-      <a class="demo-card" href="/playway-grammar/">
-        <div class="demo-info">
-          <h3>Playway Grammar School</h3>
-          <p>Clifton, Karachi — Established 1983</p>
+      <div class="demo-block">
+        <a class="demo-block-main" href="/msl-clifton/">
+          <div class="demo-info">
+            <h3>MSL School · Clifton</h3>
+            <p>Mariam's School of Learning — Preschool &amp; Primary</p>
+          </div>
+          <span class="arrow">→</span>
+        </a>
+        <div class="demo-pages">
+          <a href="/msl-clifton/">Home</a>
+          <a href="/msl-clifton/about.html">About</a>
+          <a href="/msl-clifton/programs.html">Programs</a>
+          <a href="/msl-clifton/admissions.html">Admissions</a>
+          <a class="admin" href="/msl-clifton/admin.html">Admin · Upload Images</a>
         </div>
-        <span class="arrow">→</span>
-      </a>
+      </div>
+
+      <div class="demo-block">
+        <a class="demo-block-main" href="/playway-grammar/">
+          <div class="demo-info">
+            <h3>Playway Grammar School</h3>
+            <p>Clifton, Karachi — Established 1983</p>
+          </div>
+          <span class="arrow">→</span>
+        </a>
+        <div class="demo-pages">
+          <a href="/playway-grammar/">Home</a>
+          <a href="/playway-grammar/about.html">About</a>
+          <a href="/playway-grammar/programs.html">Programs</a>
+          <a href="/playway-grammar/admissions.html">Admissions</a>
+          <a class="admin" href="/playway-grammar/admin.html">Admin · Upload Images</a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="system-status">
+      <div class="status-label">System</div>
+      <div class="status-row">
+        <span class="key">Image storage</span>
+        <span class="val">Supabase</span>
+      </div>
+      <div class="status-row">
+        <span class="key">Config file</span>
+        <span class="val">/supabase-config.js</span>
+      </div>
+      <div class="status-row">
+        <span class="key">Pages per school</span>
+        <span class="val">4 + admin</span>
+      </div>
+      <div class="status-row">
+        <span class="key">Image slots per school</span>
+        <span class="val">20</span>
+      </div>
     </div>
 
     <footer>
-      Built by Cubico Technologies · For pitching purposes only
+      Built by Cubico Technologies · For pitching purposes only · noindex
     </footer>
   </div>
 </body>
