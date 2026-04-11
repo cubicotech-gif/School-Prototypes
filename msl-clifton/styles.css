@@ -1,19 +1,24 @@
 /* =============================================================
    MSL Clifton — School Website Styles
-   Cubico School Prototype · Editorial · Cream + Burgundy + Coral
+   Cubico School Prototype · Classic · Navy + White + Electric Blue
    Shared by index.html, about.html, programs.html, admissions.html
+
+   Note: variable names are historical (--cream / --burgundy / --coral)
+   but the VALUES are now navy/white/blue. Kept for minimal churn —
+   treat --cream as "page bg", --burgundy as "primary brand",
+   --coral as "accent".
    ============================================================= */
 
 :root {
-  --cream: #fdf8f3;
-  --cream-dark: #f5ecdf;
-  --burgundy: #6b2737;
-  --burgundy-dark: #4a1a25;
-  --coral: #e07856;
-  --coral-light: #f4a58d;
-  --text: #2a1a1f;
-  --text-soft: #6b5a5e;
-  --border: #e8dccb;
+  --cream: #ffffff;          /* page background — white */
+  --cream-dark: #f1f5fb;     /* alt section bg — very pale blue-white */
+  --burgundy: #0b1e3a;       /* primary brand — deep navy */
+  --burgundy-dark: #050b17;  /* hero / footer — near black */
+  --coral: #2b7fff;          /* accent — electric blue */
+  --coral-light: #9dc4ff;    /* accent on dark bg — pale blue */
+  --text: #0a0e1a;
+  --text-soft: #5a6578;
+  --border: #e6ecf4;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,7 +36,7 @@ img { max-width: 100%; display: block; }
 /* ----- Nav ----- */
 nav {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(253, 248, 243, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
@@ -99,7 +104,7 @@ nav {
 .hero::before {
   content: ''; position: absolute; inset: 0;
   background-image:
-    linear-gradient(135deg, rgba(74, 26, 37, 0.88) 0%, rgba(74, 26, 37, 0.55) 60%, rgba(74, 26, 37, 0.3) 100%),
+    linear-gradient(135deg, rgba(5, 11, 23, 0.9) 0%, rgba(5, 11, 23, 0.6) 60%, rgba(5, 11, 23, 0.35) 100%),
     var(--slot-image);
   background-size: cover;
   background-position: center;
@@ -112,8 +117,8 @@ nav {
   letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--coral-light);
   padding: 0.5rem 1rem;
-  background: rgba(253, 248, 243, 0.1);
-  border: 1px solid rgba(253, 248, 243, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 100px;
   margin-bottom: 1.75rem;
 }
@@ -129,7 +134,7 @@ nav {
 .hero h1 em { font-style: italic; color: var(--coral-light); font-weight: 400; }
 .hero p.lead {
   font-size: 1.2rem;
-  color: rgba(253, 248, 243, 0.85);
+  color: rgba(255, 255, 255, 0.85);
   max-width: 52ch;
   margin-bottom: 2.5rem;
 }
@@ -145,7 +150,7 @@ nav {
 .page-hero::before {
   content: ''; position: absolute; inset: 0;
   background-image:
-    linear-gradient(135deg, rgba(74, 26, 37, 0.92) 0%, rgba(74, 26, 37, 0.65) 100%),
+    linear-gradient(135deg, rgba(5, 11, 23, 0.92) 0%, rgba(5, 11, 23, 0.7) 100%),
     var(--slot-image, none);
   background-size: cover;
   background-position: center;
@@ -166,7 +171,7 @@ nav {
 .page-hero p {
   margin-top: 1.25rem;
   font-size: 1.15rem;
-  color: rgba(253, 248, 243, 0.82);
+  color: rgba(255, 255, 255, 0.82);
   max-width: 58ch;
 }
 
@@ -182,7 +187,7 @@ nav {
 .btn-secondary {
   background: transparent; color: var(--cream);
   padding: 1rem 2rem; border-radius: 100px;
-  border: 1.5px solid rgba(253, 248, 243, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
   text-decoration: none; font-weight: 500;
   transition: all 0.2s; display: inline-block;
 }
@@ -223,7 +228,7 @@ h2 em { font-style: italic; color: var(--coral); font-weight: 400; }
 .about-image img { width: 100%; height: 100%; object-fit: cover; }
 .about-image::after {
   content: ''; position: absolute; inset: 0;
-  background: linear-gradient(180deg, transparent 55%, rgba(74, 26, 37, 0.35));
+  background: linear-gradient(180deg, transparent 55%, rgba(5, 11, 23, 0.4));
 }
 .about-badge {
   position: absolute;
@@ -233,6 +238,7 @@ h2 em { font-style: italic; color: var(--coral); font-weight: 400; }
   border-radius: 16px;
   display: flex; align-items: center; gap: 1rem;
   z-index: 2;
+  box-shadow: 0 10px 30px rgba(5, 11, 23, 0.12);
 }
 .about-badge-icon {
   width: 44px; height: 44px;
@@ -273,7 +279,7 @@ h2 em { font-style: italic; color: var(--coral); font-weight: 400; }
   transition: all 0.3s;
   display: flex; flex-direction: column;
 }
-.program-card:hover { transform: translateY(-4px); border-color: var(--coral); box-shadow: 0 20px 40px rgba(107, 39, 55, 0.08); }
+.program-card:hover { transform: translateY(-4px); border-color: var(--coral); box-shadow: 0 20px 40px rgba(11, 30, 58, 0.1); }
 .program-image {
   aspect-ratio: 4 / 3;
   background: var(--cream-dark);
@@ -291,7 +297,7 @@ h2 em { font-style: italic; color: var(--coral); font-weight: 400; }
   color: var(--coral); letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 0.3rem 0.75rem;
-  background: rgba(224, 120, 86, 0.1);
+  background: rgba(43, 127, 255, 0.1);
   border-radius: 100px;
   margin-bottom: 1rem;
 }
@@ -346,19 +352,19 @@ h2 em { font-style: italic; color: var(--coral); font-weight: 400; }
   content: ''; position: absolute; inset: 0;
   background-image: url('https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1800&q=80&auto=format&fit=crop');
   background-size: cover; background-position: center;
-  opacity: 0.08;
+  opacity: 0.06;
   z-index: 0;
 }
 .testimonials .container { position: relative; z-index: 1; }
 .testimonials h2 { color: var(--cream); }
 .testimonials h2 em { color: var(--coral-light); }
 .testimonials .section-eyebrow { color: var(--coral-light); }
-.testimonials .section-intro { color: rgba(253, 248, 243, 0.75); }
+.testimonials .section-intro { color: rgba(255, 255, 255, 0.78); }
 .test-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
 @media (min-width: 860px) { .test-grid { grid-template-columns: repeat(3, 1fr); } }
 .test-card {
-  background: rgba(253, 248, 243, 0.05);
-  border: 1px solid rgba(253, 248, 243, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 20px;
   padding: 2rem;
   backdrop-filter: blur(4px);
@@ -372,7 +378,7 @@ h2 em { font-style: italic; color: var(--coral); font-weight: 400; }
   color: var(--cream);
 }
 .test-author { font-weight: 600; font-size: 0.925rem; color: var(--coral-light); }
-.test-relation { font-size: 0.825rem; color: rgba(253, 248, 243, 0.6); }
+.test-relation { font-size: 0.825rem; color: rgba(255, 255, 255, 0.6); }
 
 /* ----- CTA / Admissions banner ----- */
 .cta-banner { background: var(--cream); text-align: center; }
@@ -556,6 +562,7 @@ h2 em { font-style: italic; color: var(--coral); font-weight: 400; }
   padding: 2.5rem;
   border-radius: 20px;
   border: 1px solid var(--border);
+  box-shadow: 0 10px 40px rgba(5, 11, 23, 0.06);
 }
 .form-row {
   display: grid;
@@ -605,16 +612,16 @@ footer {
 .footer-grid {
   display: grid; grid-template-columns: 1fr; gap: 3rem;
   padding-bottom: 3rem;
-  border-bottom: 1px solid rgba(253, 248, 243, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 @media (min-width: 740px) { .footer-grid { grid-template-columns: 1.5fr 1fr 1fr; } }
 .footer-brand h3 { font-family: 'Fraunces', serif; font-size: 1.5rem; margin-bottom: 0.75rem; }
 .footer-brand h3 span { color: var(--coral-light); font-style: italic; }
-.footer-brand p { color: rgba(253, 248, 243, 0.7); font-size: 0.925rem; max-width: 30ch; margin-bottom: 1rem; }
+.footer-brand p { color: rgba(255, 255, 255, 0.72); font-size: 0.925rem; max-width: 30ch; margin-bottom: 1rem; }
 .footer-socials { display: flex; gap: 0.75rem; margin-top: 1rem; }
 .footer-socials a {
   width: 38px; height: 38px; border-radius: 10px;
-  background: rgba(253, 248, 243, 0.08);
+  background: rgba(255, 255, 255, 0.08);
   display: flex; align-items: center; justify-content: center;
   color: var(--cream); text-decoration: none;
   font-size: 0.8rem; font-weight: 700;
@@ -626,7 +633,7 @@ footer {
   color: var(--coral-light); margin-bottom: 1rem; font-weight: 600;
 }
 .footer-col p, .footer-col a {
-  display: block; color: rgba(253, 248, 243, 0.75);
+  display: block; color: rgba(255, 255, 255, 0.72);
   font-size: 0.925rem; text-decoration: none;
   margin-bottom: 0.5rem;
 }
@@ -635,5 +642,5 @@ footer {
   padding-top: 2rem;
   text-align: center;
   font-size: 0.8rem;
-  color: rgba(253, 248, 243, 0.5);
+  color: rgba(255, 255, 255, 0.5);
 }
