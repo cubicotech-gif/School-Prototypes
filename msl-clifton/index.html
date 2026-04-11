@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>MSL School Clifton — A Holistic Approach to Your Child's Education</title>
+  <meta name="description" content="Mariam's School of Learning — a trusted pre-school and primary school in Clifton, Karachi, where children learn through play, warmth, and wonder." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://images.unsplash.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cream: #fdf8f3;
+      --cream-dark: #f5ecdf;
+      --burgundy: #6b2737;
+      --burgundy-dark: #4a1a25;
+      --coral: #e07856;
+      --coral-light: #f4a58d;
+      --text: #2a1a1f;
+      --text-soft: #6b5a5e;
+      --border: #e8dccb;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { max-width: 100%; display: block; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* Nav */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(253, 248, 243, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 0;
+    }
+    .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: var(--burgundy); }
+    .logo-mark {
+      width: 44px; height: 44px;
+      background: var(--burgundy);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Fraunces', serif;
+      color: var(--cream);
+      font-weight: 600;
+      font-size: 1.05rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .logo-mark::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
+      background: var(--coral);
+    }
+    .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .logo-text .name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.2rem; }
+    .logo-text .sub { font-size: 0.7rem; color: var(--text-soft); letter-spacing: 0.08em; text-transform: uppercase; }
+    .nav-links { display: none; gap: 2.25rem; }
+    .nav-links a { color: var(--text); text-decoration: none; font-size: 0.925rem; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--coral); }
+    .nav-cta {
+      background: var(--burgundy); color: var(--cream);
+      padding: 0.65rem 1.25rem; border-radius: 100px;
+      text-decoration: none; font-size: 0.875rem; font-weight: 500;
+      transition: all 0.2s;
+    }
+    .nav-cta:hover { background: var(--coral); }
+    @media (min-width: 920px) { .nav-links { display: flex; } }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      min-height: 90vh;
+      display: flex;
+      align-items: center;
+      padding: 5rem 0;
+      background: var(--burgundy-dark);
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(135deg, rgba(74, 26, 37, 0.88) 0%, rgba(74, 26, 37, 0.55) 60%, rgba(74, 26, 37, 0.3) 100%),
+        url('https://images.unsplash.com/photo-1587652990793-43eeaa8523ff?w=1800&q=80&auto=format&fit=crop');
+      background-size: cover;
+      background-position: center;
+      z-index: 0;
+    }
+    .hero-content { position: relative; z-index: 2; color: var(--cream); max-width: 720px; }
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.75rem; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--coral-light);
+      padding: 0.5rem 1rem;
+      background: rgba(253, 248, 243, 0.1);
+      border: 1px solid rgba(253, 248, 243, 0.2);
+      border-radius: 100px;
+      margin-bottom: 1.75rem;
+    }
+    .hero h1 {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(2.5rem, 6vw, 4.75rem);
+      font-weight: 500;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.5rem;
+      max-width: 16ch;
+    }
+    .hero h1 em { font-style: italic; color: var(--coral-light); font-weight: 400; }
+    .hero p.lead {
+      font-size: 1.2rem;
+      color: rgba(253, 248, 243, 0.85);
+      max-width: 52ch;
+      margin-bottom: 2.5rem;
+    }
+    .hero-buttons { display: flex; flex-wrap: wrap; gap: 1rem; }
+    .btn-primary {
+      background: var(--coral); color: white;
+      padding: 1rem 2rem; border-radius: 100px;
+      text-decoration: none; font-weight: 600;
+      transition: all 0.2s; display: inline-block;
+    }
+    .btn-primary:hover { background: white; color: var(--burgundy-dark); transform: translateY(-2px); }
+    .btn-secondary {
+      background: transparent; color: var(--cream);
+      padding: 1rem 2rem; border-radius: 100px;
+      border: 1.5px solid rgba(253, 248, 243, 0.4);
+      text-decoration: none; font-weight: 500;
+      transition: all 0.2s; display: inline-block;
+    }
+    .btn-secondary:hover { background: var(--cream); color: var(--burgundy-dark); border-color: var(--cream); }
+
+    /* Sections */
+    section { padding: 6rem 0; }
+    .section-eyebrow {
+      font-size: 0.75rem; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--coral); margin-bottom: 1rem;
+    }
+    h2 {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      color: var(--burgundy-dark);
+      margin-bottom: 1.5rem;
+      max-width: 20ch;
+    }
+    h2 em { font-style: italic; color: var(--coral); font-weight: 400; }
+    .section-intro { font-size: 1.1rem; color: var(--text-soft); max-width: 60ch; margin-bottom: 3.5rem; }
+
+    /* About */
+    .about { background: var(--cream); }
+    .about-grid { display: grid; grid-template-columns: 1fr; gap: 4rem; align-items: center; }
+    @media (min-width: 900px) { .about-grid { grid-template-columns: 1fr 1fr; gap: 5rem; } }
+    .about-image {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      aspect-ratio: 4 / 5;
+      background: var(--cream-dark);
+    }
+    .about-image img { width: 100%; height: 100%; object-fit: cover; }
+    .about-image::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(180deg, transparent 55%, rgba(74, 26, 37, 0.35));
+    }
+    .about-badge {
+      position: absolute;
+      bottom: 1.5rem; left: 1.5rem; right: 1.5rem;
+      background: var(--cream);
+      padding: 1.25rem 1.5rem;
+      border-radius: 16px;
+      display: flex; align-items: center; gap: 1rem;
+      z-index: 2;
+    }
+    .about-badge-icon {
+      width: 44px; height: 44px;
+      background: var(--coral);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .about-badge-text { font-size: 0.875rem; color: var(--text); }
+    .about-badge-text strong { display: block; color: var(--burgundy-dark); font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 600; }
+
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; margin-top: 2.5rem; }
+    .stat {
+      padding: 1.5rem;
+      background: var(--cream-dark);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+    }
+    .stat-value {
+      font-family: 'Fraunces', serif;
+      font-size: 2.25rem; font-weight: 600;
+      color: var(--burgundy);
+      line-height: 1; margin-bottom: 0.35rem;
+    }
+    .stat-label { font-size: 0.825rem; color: var(--text-soft); }
+
+    /* Programs */
+    .programs { background: var(--cream-dark); }
+    .programs-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+    @media (min-width: 640px) { .programs-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1000px) { .programs-grid { grid-template-columns: repeat(4, 1fr); } }
+    .program-card {
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    .program-card:hover { transform: translateY(-4px); border-color: var(--coral); box-shadow: 0 20px 40px rgba(107, 39, 55, 0.08); }
+    .program-image {
+      aspect-ratio: 4 / 3;
+      background: var(--cream-dark);
+      overflow: hidden;
+    }
+    .program-image img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.5s;
+    }
+    .program-card:hover .program-image img { transform: scale(1.05); }
+    .program-body { padding: 1.75rem; }
+    .program-age {
+      display: inline-block;
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--coral); letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.75rem;
+      background: rgba(224, 120, 86, 0.1);
+      border-radius: 100px;
+      margin-bottom: 1rem;
+    }
+    .program-name {
+      font-family: 'Fraunces', serif;
+      font-size: 1.35rem; font-weight: 600;
+      color: var(--burgundy-dark);
+      margin-bottom: 0.5rem;
+    }
+    .program-desc { font-size: 0.9rem; color: var(--text-soft); line-height: 1.6; }
+
+    /* Why Us */
+    .why-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+    @media (min-width: 860px) { .why-grid { grid-template-columns: repeat(2, 1fr); gap: 2.5rem; } }
+    .why-item {
+      padding: 2rem;
+      border-left: 3px solid var(--coral);
+      background: var(--cream-dark);
+      border-radius: 0 18px 18px 0;
+    }
+    .why-item h3 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.35rem; font-weight: 600;
+      color: var(--burgundy-dark); margin-bottom: 0.75rem;
+    }
+    .why-item p { color: var(--text-soft); font-size: 0.975rem; }
+
+    /* Testimonials */
+    .testimonials {
+      background: var(--burgundy-dark);
+      color: var(--cream);
+      position: relative;
+      overflow: hidden;
+    }
+    .testimonials::before {
+      content: ''; position: absolute; inset: 0;
+      background-image: url('https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1800&q=80&auto=format&fit=crop');
+      background-size: cover; background-position: center;
+      opacity: 0.08;
+      z-index: 0;
+    }
+    .testimonials .container { position: relative; z-index: 1; }
+    .testimonials h2 { color: var(--cream); }
+    .testimonials h2 em { color: var(--coral-light); }
+    .testimonials .section-eyebrow { color: var(--coral-light); }
+    .testimonials .section-intro { color: rgba(253, 248, 243, 0.75); }
+    .test-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+    @media (min-width: 860px) { .test-grid { grid-template-columns: repeat(3, 1fr); } }
+    .test-card {
+      background: rgba(253, 248, 243, 0.05);
+      border: 1px solid rgba(253, 248, 243, 0.1);
+      border-radius: 20px;
+      padding: 2rem;
+      backdrop-filter: blur(4px);
+    }
+    .test-quote {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-size: 1.05rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      color: var(--cream);
+    }
+    .test-author { font-weight: 600; font-size: 0.925rem; color: var(--coral-light); }
+    .test-relation { font-size: 0.825rem; color: rgba(253, 248, 243, 0.6); }
+
+    /* Admissions CTA */
+    .admissions { background: var(--cream); text-align: center; }
+    .admissions .container { max-width: 760px; }
+    .admissions h2 { margin: 0 auto 1.5rem; }
+    .admissions p { font-size: 1.15rem; color: var(--text-soft); margin-bottom: 2.5rem; }
+    .admissions .hero-buttons { justify-content: center; }
+    .admissions .btn-primary { background: var(--burgundy); }
+    .admissions .btn-primary:hover { background: var(--burgundy-dark); color: white; }
+    .admissions .btn-secondary { color: var(--burgundy); border-color: var(--burgundy); }
+    .admissions .btn-secondary:hover { background: var(--burgundy); color: var(--cream); }
+
+    /* Footer */
+    footer {
+      background: var(--burgundy-dark);
+      color: var(--cream);
+      padding: 4rem 0 2rem;
+    }
+    .footer-grid {
+      display: grid; grid-template-columns: 1fr; gap: 3rem;
+      padding-bottom: 3rem;
+      border-bottom: 1px solid rgba(253, 248, 243, 0.1);
+    }
+    @media (min-width: 740px) { .footer-grid { grid-template-columns: 1.5fr 1fr 1fr; } }
+    .footer-brand h3 { font-family: 'Fraunces', serif; font-size: 1.5rem; margin-bottom: 0.75rem; }
+    .footer-brand h3 span { color: var(--coral-light); font-style: italic; }
+    .footer-brand p { color: rgba(253, 248, 243, 0.7); font-size: 0.925rem; max-width: 30ch; margin-bottom: 1rem; }
+    .footer-socials { display: flex; gap: 0.75rem; margin-top: 1rem; }
+    .footer-socials a {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(253, 248, 243, 0.08);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--cream); text-decoration: none;
+      font-size: 0.8rem; font-weight: 700;
+      transition: all 0.2s;
+    }
+    .footer-socials a:hover { background: var(--coral); }
+    .footer-col h4 {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em;
+      color: var(--coral-light); margin-bottom: 1rem; font-weight: 600;
+    }
+    .footer-col p, .footer-col a {
+      display: block; color: rgba(253, 248, 243, 0.75);
+      font-size: 0.925rem; text-decoration: none;
+      margin-bottom: 0.5rem;
+    }
+    .footer-col a:hover { color: var(--cream); }
+    .footer-bottom {
+      padding-top: 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: rgba(253, 248, 243, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="#" class="logo">
+        <div class="logo-mark">MSL</div>
+        <div class="logo-text">
+          <span class="name">MSL School</span>
+          <span class="sub">Mariam's School of Learning</span>
+        </div>
+      </a>
+      <div class="nav-links">
+        <a href="#about">About</a>
+        <a href="#programs">Programs</a>
+        <a href="#why-us">Why MSL</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <a href="#admissions" class="nav-cta">Schedule a Visit</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="container hero-content">
+      <div class="eyebrow">Pre-school · Primary · Clifton, Karachi</div>
+      <h1>Where curious minds find their <em>first home</em>.</h1>
+      <p class="lead">At MSL, we nurture every child through play, discovery, and a holistic approach that prepares them for life — not just for exams.</p>
+      <div class="hero-buttons">
+        <a href="#admissions" class="btn-primary">Schedule a Visit</a>
+        <a href="#programs" class="btn-secondary">Explore Programs</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="about" id="about">
+    <div class="container">
+      <div class="about-grid">
+        <div class="about-image">
+          <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&q=80&auto=format&fit=crop" alt="Young children learning in a warm classroom" loading="lazy" />
+          <div class="about-badge">
+            <div class="about-badge-icon">♥</div>
+            <div class="about-badge-text">
+              <strong>A holistic approach</strong>
+              to your child's education
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-eyebrow">Our Story</div>
+          <h2>A school built on warmth, wonder, and a <em>love for learning</em>.</h2>
+          <p class="section-intro">MSL School (Mariam's School of Learning) has been a trusted name in Clifton for years — a place where children feel safe, seen, and excited to learn every single morning.</p>
+          <p style="color: var(--text-soft); font-size: 1.05rem;">Our holistic philosophy means we care as much about kindness, curiosity, and confidence as we do about reading and arithmetic. From our covered playground to our small, attentive classrooms, every detail of MSL is designed around the child.</p>
+          <div class="stats">
+            <div class="stat"><div class="stat-value">15+</div><div class="stat-label">Years of Excellence</div></div>
+            <div class="stat"><div class="stat-value">300+</div><div class="stat-label">Happy Families</div></div>
+            <div class="stat"><div class="stat-value">20:1</div><div class="stat-label">Student-Teacher Ratio</div></div>
+            <div class="stat"><div class="stat-value">100%</div><div class="stat-label">Holistic Approach</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="programs" id="programs">
+    <div class="container">
+      <div class="section-eyebrow">What We Offer</div>
+      <h2>Programs designed for every stage of <em>early childhood</em>.</h2>
+      <p class="section-intro">From first steps into the classroom to confident young readers, our programs grow with your child.</p>
+
+      <div class="programs-grid">
+        <div class="program-card">
+          <div class="program-image">
+            <img src="https://images.unsplash.com/photo-1587652990793-43eeaa8523ff?w=600&q=80&auto=format&fit=crop" alt="Toddler exploring" loading="lazy" />
+          </div>
+          <div class="program-body">
+            <div class="program-age">Ages 2 – 3</div>
+            <div class="program-name">Playgroup</div>
+            <p class="program-desc">A gentle introduction to school life through guided play, sensory activities, and warm one-on-one care.</p>
+          </div>
+        </div>
+        <div class="program-card">
+          <div class="program-image">
+            <img src="https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=600&q=80&auto=format&fit=crop" alt="Nursery children" loading="lazy" />
+          </div>
+          <div class="program-body">
+            <div class="program-age">Ages 3 – 4</div>
+            <div class="program-name">Nursery</div>
+            <p class="program-desc">Building social skills, early literacy, and creative expression in a joyful, structured environment.</p>
+          </div>
+        </div>
+        <div class="program-card">
+          <div class="program-image">
+            <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&q=80&auto=format&fit=crop" alt="Kindergarten child reading" loading="lazy" />
+          </div>
+          <div class="program-body">
+            <div class="program-age">Ages 4 – 6</div>
+            <div class="program-name">KG I &amp; II</div>
+            <p class="program-desc">Foundational reading, writing, and numeracy paired with art, music, and outdoor exploration.</p>
+          </div>
+        </div>
+        <div class="program-card">
+          <div class="program-image">
+            <img src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=600&q=80&auto=format&fit=crop" alt="Books for primary students" loading="lazy" />
+          </div>
+          <div class="program-body">
+            <div class="program-age">Ages 6 – 11</div>
+            <div class="program-name">Primary</div>
+            <p class="program-desc">A rigorous yet nurturing curriculum that builds confident, curious learners ready for the next stage.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="why-us">
+    <div class="container">
+      <div class="section-eyebrow">The MSL Difference</div>
+      <h2>What makes us the school parents <em>trust in Clifton</em>.</h2>
+      <p class="section-intro">Every decision at MSL is made with one question in mind: what's best for the child?</p>
+
+      <div class="why-grid">
+        <div class="why-item">
+          <h3>Small, attentive classrooms</h3>
+          <p>Every child is known by name. Our low student-teacher ratio means no one is ever lost in the crowd.</p>
+        </div>
+        <div class="why-item">
+          <h3>Safe, secure environment</h3>
+          <p>ID verification at pickup, a fully covered playground, and caring staff who treat every child like their own.</p>
+        </div>
+        <div class="why-item">
+          <h3>Learning through play</h3>
+          <p>Children don't just memorize — they explore, question, create, and discover. That's how real learning happens.</p>
+        </div>
+        <div class="why-item">
+          <h3>Prime Clifton location</h3>
+          <p>Right by Benazir Park in Block 5 — easy access, peaceful surroundings, and a warm community of families.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="testimonials">
+    <div class="container">
+      <div class="section-eyebrow">In Parents' Words</div>
+      <h2>Families who chose MSL, and <em>never looked back</em>.</h2>
+
+      <div class="test-grid">
+        <div class="test-card">
+          <p class="test-quote">"MSL is a magical place where teachers show love for the students through their teaching, influence, and guidance. My daughter looks forward to school every morning."</p>
+          <div class="test-author">Sara K.</div>
+          <div class="test-relation">Parent of KG II student</div>
+        </div>
+        <div class="test-card">
+          <p class="test-quote">"I chose MSL because of the security and warmth. They never let kids out without ID verification, the playground is covered, and the teachers genuinely care."</p>
+          <div class="test-author">Shoaib A.</div>
+          <div class="test-relation">Parent of Playgroup student</div>
+        </div>
+        <div class="test-card">
+          <p class="test-quote">"Excellent staff, beautiful environment, and right next to Benazir Park. We couldn't be happier with our decision."</p>
+          <div class="test-author">Saima R.</div>
+          <div class="test-relation">Parent of Nursery student</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="admissions" id="admissions">
+    <div class="container">
+      <div class="section-eyebrow">Join Our Family</div>
+      <h2>Admissions are <em>open</em>.</h2>
+      <p>We welcome families who share our love of learning. Get in touch and our admissions team will schedule a campus visit within 24 hours.</p>
+      <div class="hero-buttons">
+        <a href="tel:+923060000060" class="btn-primary">Call +92 306 0000060</a>
+        <a href="#contact" class="btn-secondary">Send a Message</a>
+      </div>
+    </div>
+  </section>
+
+  <footer id="contact">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>MSL <span>School</span></h3>
+          <p>Mariam's School of Learning — a holistic approach to your child's education.</p>
+          <div class="footer-socials">
+            <a href="https://www.facebook.com/mslschoolclifton/" target="_blank" rel="noopener" aria-label="Facebook">FB</a>
+            <a href="https://www.instagram.com/msl.school/" target="_blank" rel="noopener" aria-label="Instagram">IG</a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Visit Us</h4>
+          <p>F-10, Khayaban-e-Saadi<br />Block 5, Clifton<br />Karachi — 75600</p>
+        </div>
+        <div class="footer-col">
+          <h4>Get in Touch</h4>
+          <a href="tel:+923060000060">+92 306 0000060</a>
+          <a href="mailto:info@mslschool.edu.pk">info@mslschool.edu.pk</a>
+          <p style="margin-top: 1rem; font-size: 0.8rem;">Mon – Thu: 8:30 AM – 2:00 PM<br />Fri: 8:30 AM – 12:30 PM</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        © 2026 MSL School · Mariam's School of Learning · Clifton, Karachi
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
