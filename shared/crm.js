@@ -348,15 +348,24 @@
 
     var suggested = NEXT_ACTIONS[lead.status] || "";
 
+    // Count emails sent/received for this lead
+    var acts = activities[id] || [];
+    var emailsSent = acts.filter(function (a) { return a.type === "email_sent"; }).length;
+    var repliesReceived = acts.filter(function (a) { return a.type === "email_received"; }).length;
+
     el.innerHTML =
-      '<div class="next-action-box"><strong>Suggested next:</strong> ' + esc(lead.next_action || suggested) + "</div>" +
+      '<div class="next-action-box"><span class="label">Next:</span> ' + esc(lead.next_action || suggested) + "</div>" +
       '<div class="quick-actions">' +
-        '<button class="btn btn-sm btn-accent" data-action="email-initial">Email — Initial Outreach</button>' +
-        '<button class="btn btn-sm btn-ghost" data-action="email-followup">Email — Follow Up</button>' +
-        '<button class="btn btn-sm btn-ghost" data-action="email-meeting">Email — After Meeting</button>' +
-        '<button class="btn btn-sm btn-success" data-action="whatsapp">WhatsApp Message</button>' +
-        '<button class="btn btn-sm btn-ghost" data-action="copy">Copy Prototype Link</button>' +
+        '<button class="btn btn-sm btn-accent" data-action="compose-email">Compose Email</button>' +
+        '<button class="btn btn-sm btn-success" data-action="whatsapp">WhatsApp</button>' +
+        '<button class="btn btn-sm btn-ghost" data-action="copy">Copy Link</button>' +
+        '<button class="btn btn-sm btn-warn" data-action="mark-reply">Mark Reply Received</button>' +
       "</div>" +
+      '<div style="display:flex;gap:1rem;margin-bottom:1rem;font-size:0.78rem;color:var(--text-dim);">' +
+        '<span>Emails sent: <strong style="color:var(--accent)">' + emailsSent + '</strong></span>' +
+        '<span>Replies: <strong style="color:var(--success)">' + repliesReceived + '</strong></span>' +
+      '</div>' +
+      '<div id="email-compose-' + id + '"></div>' +
       '<div class="detail-grid">' +
         '<div>' +
           '<div class="detail-section"><h4>Contact</h4>' +
@@ -447,11 +456,10 @@
     el.querySelectorAll("[data-action]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var a = btn.dataset.action;
-        if (a === "email-initial") composeEmail(lead, "initial");
-        else if (a === "email-followup") composeEmail(lead, "followup");
-        else if (a === "email-meeting") composeEmail(lead, "after_meeting");
+        if (a === "compose-email") showEmailCompose(id);
         else if (a === "whatsapp") openWhatsApp(lead);
         else if (a === "copy") copyLink(lead);
+        else if (a === "mark-reply") markReplyReceived(id);
       });
     });
   }
@@ -514,6 +522,115 @@
       } catch (e) { toast("Error: " + e.message); }
     });
     el.querySelector("#cancel-act-btn").addEventListener("click", function () { el.innerHTML = ""; });
+  }
+
+  // ---- Email compose panel (inside lead detail) ----
+  function showEmailCompose(leadId) {
+    var lead = findLead(leadId);
+    if (!lead) return;
+    var el = document.getElementById("email-compose-" + leadId);
+    if (!el) return;
+
+    // Default to initial if no emails sent, otherwise followup
+    var acts = activities[leadId] || [];
+    var hasSent = acts.some(function (a) { return a.type === "email_sent"; });
+    var hasMeeting = acts.some(function (a) { return a.type === "meeting"; });
+    var defaultTpl = hasMeeting ? "after_meeting" : (hasSent ? "followup" : "initial");
+    var tpl = EMAIL_TEMPLATES[defaultTpl];
+    var subject = fillTemplate(tpl.subject, lead);
+    var body = fillTemplate(tpl.body, lead);
+
+    el.innerHTML =
+      '<div class="email-compose">' +
+        '<div class="template-pills">' +
+          '<span class="template-pill' + (defaultTpl === "initial" ? " active" : "") + '" data-tpl="initial">Initial Outreach</span>' +
+          '<span class="template-pill' + (defaultTpl === "followup" ? " active" : "") + '" data-tpl="followup">Follow Up</span>' +
+          '<span class="template-pill' + (defaultTpl === "after_meeting" ? " active" : "") + '" data-tpl="after_meeting">After Meeting</span>' +
+        '</div>' +
+        '<div class="field"><label>To</label><input type="email" id="compose-to" value="' + esc(lead.email || "") + '" placeholder="school@email.com" /></div>' +
+        '<div class="field"><label>Subject</label><input type="text" id="compose-subject" value="' + esc(subject) + '" /></div>' +
+        '<div class="field"><label>Body</label><textarea id="compose-body" rows="8">' + esc(body) + '</textarea></div>' +
+        '<div class="compose-actions">' +
+          '<button class="btn btn-sm btn-accent" id="compose-send">Open in Gmail</button>' +
+          '<button class="btn btn-sm btn-success" id="compose-mark-sent">Mark as Sent</button>' +
+          '<button class="btn btn-sm btn-ghost" id="compose-cancel">Close</button>' +
+          '<span class="compose-hint">Opens your email client with this message pre-filled</span>' +
+        '</div>' +
+      '</div>';
+
+    // Template pill switching
+    el.querySelectorAll(".template-pill").forEach(function (pill) {
+      pill.addEventListener("click", function () {
+        el.querySelectorAll(".template-pill").forEach(function (p) { p.classList.remove("active"); });
+        pill.classList.add("active");
+        var t = EMAIL_TEMPLATES[pill.dataset.tpl];
+        el.querySelector("#compose-subject").value = fillTemplate(t.subject, lead);
+        el.querySelector("#compose-body").value = fillTemplate(t.body, lead);
+      });
+    });
+
+    // Open in Gmail (mailto)
+    el.querySelector("#compose-send").addEventListener("click", function () {
+      var to = el.querySelector("#compose-to").value;
+      var subj = el.querySelector("#compose-subject").value;
+      var b = el.querySelector("#compose-body").value;
+      window.open("mailto:" + encodeURIComponent(to) + "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(b), "_blank");
+    });
+
+    // Mark as Sent — log the email as an activity
+    el.querySelector("#compose-mark-sent").addEventListener("click", async function () {
+      var subj = el.querySelector("#compose-subject").value;
+      var b = el.querySelector("#compose-body").value;
+      var to = el.querySelector("#compose-to").value;
+      try {
+        await addActivity({
+          lead_id: leadId,
+          type: "email_sent",
+          subject: "Sent: " + subj,
+          body: "To: " + to + "\n\n" + b,
+        });
+        // Auto-update status to Emailed if currently New or Researching
+        if (lead.status === "New" || lead.status === "Researching") {
+          lead.status = "Emailed";
+          var d = new Date(); d.setDate(d.getDate() + 3);
+          lead.follow_up_date = dateStr(d);
+          lead.next_action = "Follow up if no reply in 3 days";
+          await saveLead({ id: leadId, status: "Emailed", follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+        }
+        activities[leadId] = await fetchActivities(leadId);
+        leads = await fetchLeads();
+        renderAll();
+        renderLeadDetail(leadId);
+        toast("Email logged as sent");
+      } catch (e) { toast("Error: " + e.message); }
+    });
+
+    el.querySelector("#compose-cancel").addEventListener("click", function () { el.innerHTML = ""; });
+  }
+
+  async function markReplyReceived(leadId) {
+    var lead = findLead(leadId);
+    if (!lead) return;
+    try {
+      await addActivity({
+        lead_id: leadId,
+        type: "email_received",
+        subject: "Reply received from " + (lead.contact_name || lead.school_name),
+      });
+      // Auto-update status to Replied
+      if (lead.status === "Emailed") {
+        lead.status = "Replied";
+        lead.next_action = "Schedule a meeting or call";
+        var d = new Date(); d.setDate(d.getDate() + 1);
+        lead.follow_up_date = dateStr(d);
+        await saveLead({ id: leadId, status: "Replied", follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+      }
+      activities[leadId] = await fetchActivities(leadId);
+      leads = await fetchLeads();
+      renderAll();
+      renderLeadDetail(leadId);
+      toast("Reply logged — status updated");
+    } catch (e) { toast("Error: " + e.message); }
   }
 
   // ---- Add / Edit lead modal ----
