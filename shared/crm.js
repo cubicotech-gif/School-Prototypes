@@ -18,7 +18,8 @@
   "use strict";
 
   // ---- Constants ----
-  var STATUSES = ["New", "Researching", "Emailed", "Replied", "Meeting", "Proposal", "Won", "Lost", "On Hold"];
+  var STATUSES = ["New", "Contacted", "Follow Up", "Replied", "Meeting", "Won", "Lost"];
+  var KANBAN_COLS = ["New", "Contacted", "Follow Up", "Replied", "Meeting", "Won/Lost"];
   var PRIORITIES = ["Hot", "Warm", "Cold"];
   var SOURCES = ["Cold Email", "Referral", "Walk-in", "Social Media", "Website", "Other"];
   var COUNTRIES = ["Pakistan", "Saudi Arabia", "USA", "UAE", "UK", "Canada", "Other"];
@@ -34,19 +35,22 @@
   ];
 
   var FOLLOW_UP_DAYS = {
-    New: 1, Researching: 2, Emailed: 3, Replied: 1, Meeting: 1, Proposal: 3,
+    New: 1, Contacted: 3, "Follow Up": 2, Replied: 1, Meeting: 2,
   };
 
   var NEXT_ACTIONS = {
-    New: "Research school — find principal name, email, WhatsApp",
-    Researching: "Send initial outreach email with prototype link",
-    Emailed: "Follow up if no reply in 3 days",
+    New: "Find contact info and send first email",
+    Contacted: "Wait for reply — follow up in 3 days if none",
+    "Follow Up": "Send follow-up email or WhatsApp",
     Replied: "Schedule a meeting or call",
     Meeting: "Send proposal with prototype link",
-    Proposal: "Follow up on proposal in 3 days",
     Won: "Start onboarding — collect real imagery",
     Lost: "Log reason and move on",
-    "On Hold": "Set a future follow-up date",
+  };
+
+  // Map old statuses to new ones for backward compatibility
+  var STATUS_MAP = {
+    Researching: "New", Emailed: "Contacted", Proposal: "Meeting", "On Hold": "Follow Up",
   };
 
   var EMAIL_TEMPLATES = {
@@ -74,7 +78,8 @@
   var currentFilter = "All";
   var searchQuery = "";
   var selectedIds = {}; // { id: true } for bulk selection
-  var currentSort = "newest"; // newest, oldest, follow-up, country, priority, name
+  var currentSort = "newest";
+  var currentView = "board"; // "board" or "list"
   var expandedLeadId = null;
 
   // ---- Supabase helpers ----
@@ -168,6 +173,10 @@
   async function loadDashboard() {
     try {
       leads = await fetchLeads();
+      // Normalize old statuses to new ones
+      leads.forEach(function (l) {
+        if (STATUS_MAP[l.status]) l.status = STATUS_MAP[l.status];
+      });
     } catch (e) {
       leads = [];
       console.warn("[CRM] Could not load leads:", e.message);
@@ -184,10 +193,25 @@
 
   function renderAll() {
     renderDashboard();
-    renderPipeline();
     renderAlerts();
     renderBulkBar();
-    renderLeadList();
+    if (currentView === "board") {
+      document.getElementById("pipeline").style.display = "none";
+      document.getElementById("lead-list").style.display = "none";
+      renderKanban();
+    } else {
+      document.getElementById("pipeline").style.display = "";
+      document.getElementById("lead-list").style.display = "";
+      document.getElementById("kanban").innerHTML = "";
+      renderPipeline();
+      renderLeadList();
+    }
+  }
+
+  function toggleView() {
+    currentView = currentView === "board" ? "list" : "board";
+    document.getElementById("view-toggle").textContent = currentView === "board" ? "List View" : "Board View";
+    renderAll();
   }
 
   // ---- Bulk Actions Bar ----
@@ -328,6 +352,122 @@
         currentFilter = card.dataset.filter;
         renderAll();
       });
+    });
+  }
+
+  // ---- Kanban Board ----
+  function renderKanban() {
+    var el = document.getElementById("kanban");
+    if (!el) return;
+
+    // Filter by search
+    var filtered = leads.filter(function (l) {
+      if (searchQuery) {
+        var q = searchQuery.toLowerCase();
+        return (l.school_name || "").toLowerCase().indexOf(q) >= 0 ||
+          (l.contact_name || "").toLowerCase().indexOf(q) >= 0 ||
+          (l.email || "").toLowerCase().indexOf(q) >= 0 ||
+          (l.tags || "").toLowerCase().indexOf(q) >= 0;
+      }
+      return true;
+    });
+
+    var html = '<div class="kanban-board">';
+    KANBAN_COLS.forEach(function (col) {
+      var colLeads = filtered.filter(function (l) {
+        if (col === "Won/Lost") return l.status === "Won" || l.status === "Lost";
+        return l.status === col;
+      });
+      html += '<div class="kanban-col" data-col="' + col + '">' +
+        '<div class="kanban-col-header">' +
+          '<span class="kanban-col-title">' + col + '</span>' +
+          '<span class="kanban-col-count">' + colLeads.length + '</span>' +
+        '</div>' +
+        '<div class="kanban-col-body" data-col="' + col + '">';
+      colLeads.forEach(function (l) {
+        var today = todayStr();
+        var urgent = l.follow_up_date && l.follow_up_date <= today && l.status !== "Won" && l.status !== "Lost";
+        html += '<div class="kanban-card' + (urgent ? " urgent" : "") + '" data-id="' + l.id + '" draggable="true">' +
+          '<div class="kanban-card-top">' +
+            '<span class="kanban-card-name">' + countryFlag(l.country) + esc(l.school_name) + '</span>' +
+            priorityDot(l.priority) +
+          '</div>' +
+          (l.contact_name ? '<div class="kanban-card-contact">' + esc(l.contact_name) + '</div>' : '') +
+          buildEmailSequence(l.id) +
+          renderTags(l.tags) +
+          (l.follow_up_date ? '<div class="kanban-card-date' + (urgent ? " overdue" : "") + '">' + formatDate(l.follow_up_date) + '</div>' : '') +
+        '</div>';
+      });
+      html += '</div></div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+
+    // Drag and drop
+    el.querySelectorAll(".kanban-card").forEach(function (card) {
+      card.addEventListener("dragstart", function (e) {
+        e.dataTransfer.setData("text/plain", card.dataset.id);
+        card.classList.add("dragging");
+      });
+      card.addEventListener("dragend", function () {
+        card.classList.remove("dragging");
+      });
+      // Click to expand in modal
+      card.addEventListener("click", function () {
+        expandedLeadId = card.dataset.id;
+        showLeadDetailModal(card.dataset.id);
+      });
+    });
+
+    el.querySelectorAll(".kanban-col-body").forEach(function (colBody) {
+      colBody.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        colBody.classList.add("drag-over");
+      });
+      colBody.addEventListener("dragleave", function () {
+        colBody.classList.remove("drag-over");
+      });
+      colBody.addEventListener("drop", async function (e) {
+        e.preventDefault();
+        colBody.classList.remove("drag-over");
+        var id = e.dataTransfer.getData("text/plain");
+        var col = colBody.dataset.col;
+        var newStatus = col === "Won/Lost" ? "Won" : col;
+        var lead = findLead(id);
+        if (!lead || lead.status === newStatus) return;
+        var oldStatus = lead.status;
+        lead.status = newStatus;
+        // Auto-set follow-up
+        var days = FOLLOW_UP_DAYS[newStatus];
+        if (days) {
+          var d = new Date(); d.setDate(d.getDate() + days);
+          lead.follow_up_date = dateStr(d);
+        }
+        lead.next_action = NEXT_ACTIONS[newStatus] || "";
+        try {
+          await saveLead({ id: id, status: newStatus, follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+          await addActivity({ lead_id: id, type: "status_change", subject: oldStatus + " → " + newStatus });
+          leads = await fetchLeads();
+          leads.forEach(function (l) { if (STATUS_MAP[l.status]) l.status = STATUS_MAP[l.status]; });
+          allActivities = await apiFetch("/rest/v1/lead_activity?order=created_at.desc&limit=500");
+          renderAll();
+          toast("Moved to " + newStatus);
+        } catch (err) { toast("Error: " + err.message); }
+      });
+    });
+  }
+
+  // Lead detail modal for Kanban card clicks
+  function showLeadDetailModal(id) {
+    var lead = findLead(id);
+    if (!lead) return;
+    var overlay = document.getElementById("modal-overlay");
+    overlay.classList.remove("hidden");
+    var modal = document.getElementById("modal-content");
+    modal.innerHTML = '<div id="kanban-detail-' + id + '" class="lead-detail open" style="border:none;padding:0;max-height:none;overflow:visible;"></div>';
+    renderLeadDetail(id, "kanban-detail-" + id);
+    overlay.addEventListener("click", function handler(e) {
+      if (e.target === overlay) { closeModal(); overlay.removeEventListener("click", handler); }
     });
   }
 
@@ -530,10 +670,11 @@
   }
 
   // ---- Lead detail ----
-  async function renderLeadDetail(id) {
+  async function renderLeadDetail(id, customElId) {
     var lead = findLead(id);
     if (!lead) return;
-    var el = document.getElementById("detail-" + id);
+    var el = document.getElementById(customElId || ("detail-" + id));
+    if (!el) return;
     el.classList.add("open");
 
     // Fetch activities
@@ -608,10 +749,12 @@
               '</select></div>' +
             '<div class="field"><label>Notes</label>' +
               '<textarea id="edit-notes" rows="3">' + esc(lead.notes || "") + "</textarea></div>" +
-            '<div style="display:flex;gap:0.5rem;margin-top:0.5rem;">' +
+            '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem;">' +
               '<button class="btn btn-sm btn-accent" id="save-lead-btn">Save Changes</button>' +
-              '<button class="btn btn-sm btn-ghost" id="edit-lead-btn">Edit Full Details</button>' +
-              '<button class="btn btn-sm btn-danger" id="delete-lead-btn">Delete</button>' +
+              '<button class="btn btn-sm btn-ghost" id="edit-lead-btn">Edit Details</button>' +
+              (lead.status !== "Won" ? '<button class="btn btn-sm btn-success" id="mark-won-btn">Won</button>' : '') +
+              (lead.status !== "Lost" ? '<button class="btn btn-sm btn-danger" id="mark-lost-btn">Lost</button>' : '') +
+              '<button class="btn btn-sm btn-danger" style="margin-left:auto;" id="delete-lead-btn">Delete</button>' +
             "</div>" +
           "</div>" +
           '<div class="detail-section">' +
@@ -641,6 +784,12 @@
     el.querySelector("#edit-lead-btn").addEventListener("click", function () { showLeadModal(lead); });
     el.querySelector("#delete-lead-btn").addEventListener("click", function () { confirmDelete(id); });
     el.querySelector("#add-activity-btn").addEventListener("click", function () { showActivityForm(id); });
+
+    // Quick close buttons
+    var wonBtn = el.querySelector("#mark-won-btn");
+    var lostBtn = el.querySelector("#mark-lost-btn");
+    if (wonBtn) wonBtn.addEventListener("click", function () { quickClose(id, "Won"); });
+    if (lostBtn) lostBtn.addEventListener("click", function () { quickClose(id, "Lost"); });
 
     // Tag add via dropdown
     el.querySelector("#add-tag-select").addEventListener("change", async function () {
@@ -735,8 +884,18 @@
       };
       try {
         await addActivity(act);
+        // Auto-move to Meeting if logging a meeting activity
+        var lead = findLead(leadId);
+        if (act.type === "meeting" && lead && lead.status !== "Meeting" && lead.status !== "Won" && lead.status !== "Lost") {
+          var oldS = lead.status;
+          await saveLead({ id: leadId, status: "Meeting", next_action: "Send proposal with prototype link" });
+          await addActivity({ lead_id: leadId, type: "status_change", subject: oldS + " → Meeting" });
+        }
         activities[leadId] = await fetchActivities(leadId);
-        renderLeadDetail(leadId);
+        leads = await fetchLeads();
+        leads.forEach(function (l) { if (STATUS_MAP[l.status]) l.status = STATUS_MAP[l.status]; });
+        renderAll();
+        if (expandedLeadId === leadId) renderLeadDetail(leadId);
         toast("Activity logged");
       } catch (e) { toast("Error: " + e.message); }
     });
@@ -808,13 +967,20 @@
           subject: "Sent: " + subj,
           body: "To: " + to + "\n\n" + b,
         });
-        // Auto-update status to Emailed if currently New or Researching
-        if (lead.status === "New" || lead.status === "Researching") {
-          lead.status = "Emailed";
+        // Auto-move to Contacted when first email sent
+        if (lead.status === "New") {
+          lead.status = "Contacted";
           var d = new Date(); d.setDate(d.getDate() + 3);
           lead.follow_up_date = dateStr(d);
           lead.next_action = "Follow up if no reply in 3 days";
-          await saveLead({ id: leadId, status: "Emailed", follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+          await saveLead({ id: leadId, status: "Contacted", follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+          await addActivity({ lead_id: leadId, type: "status_change", subject: "New → Contacted" });
+        } else if (lead.status === "Follow Up") {
+          // Sending follow-up — keep in Follow Up but update date
+          var d2 = new Date(); d2.setDate(d2.getDate() + 3);
+          lead.follow_up_date = dateStr(d2);
+          lead.next_action = "Wait for reply — send another follow-up if needed";
+          await saveLead({ id: leadId, follow_up_date: lead.follow_up_date, next_action: lead.next_action });
         }
         activities[leadId] = await fetchActivities(leadId);
         leads = await fetchLeads();
@@ -836,13 +1002,15 @@
         type: "email_received",
         subject: "Reply received from " + (lead.contact_name || lead.school_name),
       });
-      // Auto-update status to Replied
-      if (lead.status === "Emailed") {
+      // Auto-move to Replied from any pre-reply stage
+      if (lead.status === "Contacted" || lead.status === "Follow Up" || lead.status === "New") {
+        var oldS = lead.status;
         lead.status = "Replied";
         lead.next_action = "Schedule a meeting or call";
         var d = new Date(); d.setDate(d.getDate() + 1);
         lead.follow_up_date = dateStr(d);
         await saveLead({ id: leadId, status: "Replied", follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+        await addActivity({ lead_id: leadId, type: "status_change", subject: oldS + " → Replied" });
       }
       activities[leadId] = await fetchActivities(leadId);
       leads = await fetchLeads();
@@ -960,6 +1128,25 @@
 
   function closeModal() {
     document.getElementById("modal-overlay").classList.add("hidden");
+  }
+
+  async function quickClose(id, status) {
+    var lead = findLead(id);
+    if (!lead) return;
+    var old = lead.status;
+    lead.status = status;
+    lead.follow_up_date = null;
+    lead.next_action = NEXT_ACTIONS[status] || "";
+    try {
+      await saveLead({ id: id, status: status, follow_up_date: null, next_action: lead.next_action });
+      await addActivity({ lead_id: id, type: "status_change", subject: old + " → " + status });
+      leads = await fetchLeads();
+      leads.forEach(function (l) { if (STATUS_MAP[l.status]) l.status = STATUS_MAP[l.status]; });
+      allActivities = await apiFetch("/rest/v1/lead_activity?order=created_at.desc&limit=500");
+      closeModal();
+      renderAll();
+      toast("Marked as " + status);
+    } catch (e) { toast("Error: " + e.message); }
   }
 
   async function confirmDelete(id) {
@@ -1393,6 +1580,7 @@
     init: init,
     showAddLead: function () { showLeadModal(null); },
     toggleUpload: toggleUploadZone,
+    toggleView: toggleView,
     exportCSV: exportCSV,
   };
 })();
