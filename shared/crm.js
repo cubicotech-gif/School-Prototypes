@@ -167,6 +167,7 @@
       leads = [];
       console.warn("[CRM] Could not load leads:", e.message);
     }
+    setupUploadZone();
     renderAll();
   }
 
@@ -183,18 +184,18 @@
     STATUSES.forEach(function (s) { counts[s] = 0; });
     leads.forEach(function (l) { if (counts[l.status] !== undefined) counts[l.status]++; });
 
-    var html = '<div class="pipe-card' + (currentFilter === "All" ? " active" : "") + '" data-filter="All">';
-    html += '<div class="pipe-count">' + leads.length + "</div>";
-    html += '<div class="pipe-label">All</div></div>';
+    var html = '<div class="stat-item' + (currentFilter === "All" ? " active" : "") + '" data-filter="All">';
+    html += '<div class="stat-count">' + leads.length + "</div>";
+    html += '<div class="stat-label">All</div></div>';
 
     STATUSES.forEach(function (s) {
-      html += '<div class="pipe-card' + (currentFilter === s ? " active" : "") + '" data-filter="' + s + '">';
-      html += '<div class="pipe-count">' + counts[s] + "</div>";
-      html += '<div class="pipe-label">' + s + "</div></div>";
+      html += '<div class="stat-item' + (currentFilter === s ? " active" : "") + '" data-filter="' + s + '">';
+      html += '<div class="stat-count">' + counts[s] + "</div>";
+      html += '<div class="stat-label">' + s + "</div></div>";
     });
     el.innerHTML = html;
 
-    el.querySelectorAll(".pipe-card").forEach(function (card) {
+    el.querySelectorAll(".stat-item").forEach(function (card) {
       card.addEventListener("click", function () {
         currentFilter = card.dataset.filter;
         renderAll();
@@ -748,6 +749,180 @@
     setTimeout(function () { el.remove(); }, 2500);
   }
 
+  // ---- CSV Bulk Upload ----
+  var csvData = []; // parsed rows waiting to be imported
+
+  function toggleUploadZone() {
+    var zone = document.getElementById("upload-zone");
+    zone.classList.toggle("visible");
+    if (!zone.classList.contains("visible")) {
+      csvData = [];
+      zone.querySelector(".upload-preview").innerHTML = "";
+      zone.querySelector(".upload-count").textContent = "";
+      zone.querySelector(".upload-actions").innerHTML = "";
+    }
+  }
+
+  function setupUploadZone() {
+    var zone = document.getElementById("upload-zone");
+    if (!zone) return;
+    var fileInput = zone.querySelector('input[type="file"]');
+
+    zone.addEventListener("click", function (e) {
+      if (e.target === zone || e.target.closest(".upload-zone-icon") || e.target.closest("h3") || e.target.closest("p")) {
+        fileInput.click();
+      }
+    });
+    zone.addEventListener("dragover", function (e) { e.preventDefault(); zone.classList.add("dragover"); });
+    zone.addEventListener("dragleave", function () { zone.classList.remove("dragover"); });
+    zone.addEventListener("drop", function (e) {
+      e.preventDefault(); zone.classList.remove("dragover");
+      var file = e.dataTransfer.files[0];
+      if (file) handleCSVFile(file);
+    });
+    fileInput.addEventListener("change", function () {
+      if (fileInput.files[0]) handleCSVFile(fileInput.files[0]);
+      fileInput.value = "";
+    });
+  }
+
+  function handleCSVFile(file) {
+    var ext = file.name.split(".").pop().toLowerCase();
+    if (ext !== "csv") {
+      toast("Please upload a .csv file. Save your Excel as CSV first.");
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var text = e.target.result;
+      csvData = parseCSV(text);
+      if (!csvData.length) { toast("No data rows found in CSV"); return; }
+      renderCSVPreview();
+    };
+    reader.readAsText(file);
+  }
+
+  function parseCSV(text) {
+    var lines = text.split(/\r?\n/).filter(function (l) { return l.trim(); });
+    if (lines.length < 2) return [];
+    var headers = parseCSVLine(lines[0]).map(function (h) { return h.trim().toLowerCase().replace(/\s+/g, "_"); });
+    var rows = [];
+    for (var i = 1; i < lines.length; i++) {
+      var vals = parseCSVLine(lines[i]);
+      var obj = {};
+      headers.forEach(function (h, idx) { obj[h] = (vals[idx] || "").trim(); });
+      if (obj.school_name || obj.name || obj.school) rows.push(obj);
+    }
+    return rows;
+  }
+
+  function parseCSVLine(line) {
+    var result = [];
+    var current = "";
+    var inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+        else if (ch === '"') inQuotes = false;
+        else current += ch;
+      } else {
+        if (ch === '"') inQuotes = true;
+        else if (ch === ",") { result.push(current); current = ""; }
+        else current += ch;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  // Map common CSV column names to our DB fields
+  var CSV_FIELD_MAP = {
+    school_name: "school_name", name: "school_name", school: "school_name",
+    contact_name: "contact_name", contact: "contact_name", person: "contact_name",
+    contact_role: "contact_role", role: "contact_role", position: "contact_role",
+    email: "email", email_address: "email",
+    phone: "phone", phone_number: "phone", tel: "phone",
+    whatsapp: "whatsapp", wa: "whatsapp",
+    country: "country",
+    city: "city", town: "city",
+    address: "address", location: "address",
+    website: "website", url: "website", site: "website",
+    website_issue: "website_issue", issue: "website_issue", problem: "website_issue",
+    found_from: "found_from", found: "found_from", source_detail: "found_from",
+    source: "source",
+    notes: "notes", note: "notes", comments: "notes",
+    priority: "priority",
+    status: "status",
+    prototype_url: "prototype_url", prototype: "prototype_url",
+  };
+
+  function mapCSVRow(row) {
+    var lead = { status: "New", priority: "Warm", country: "Pakistan" };
+    Object.keys(row).forEach(function (key) {
+      var mapped = CSV_FIELD_MAP[key];
+      if (mapped && row[key]) lead[mapped] = row[key];
+    });
+    return lead;
+  }
+
+  function renderCSVPreview() {
+    var zone = document.getElementById("upload-zone");
+    var countEl = zone.querySelector(".upload-count");
+    var previewEl = zone.querySelector(".upload-preview");
+    var actionsEl = zone.querySelector(".upload-actions");
+    var mapped = csvData.map(mapCSVRow);
+
+    countEl.textContent = mapped.length + " school" + (mapped.length !== 1 ? "s" : "") + " found in CSV";
+
+    // Show preview table
+    var cols = ["school_name", "country", "city", "contact_name", "email", "website", "website_issue", "found_from"];
+    var colLabels = ["School", "Country", "City", "Contact", "Email", "Website", "Issue", "Found From"];
+    var html = "<table><thead><tr>";
+    colLabels.forEach(function (c) { html += "<th>" + c + "</th>"; });
+    html += "</tr></thead><tbody>";
+    mapped.slice(0, 50).forEach(function (r) {
+      html += "<tr>";
+      cols.forEach(function (c) { html += "<td>" + esc(r[c] || "—") + "</td>"; });
+      html += "</tr>";
+    });
+    if (mapped.length > 50) html += '<tr><td colspan="' + cols.length + '" style="text-align:center;color:var(--text-dim);">... and ' + (mapped.length - 50) + " more</td></tr>";
+    html += "</tbody></table>";
+    previewEl.innerHTML = html;
+
+    actionsEl.innerHTML =
+      '<button class="btn btn-accent" id="csv-import-btn">Import ' + mapped.length + " Leads</button>" +
+      '<button class="btn btn-ghost" id="csv-cancel-btn">Cancel</button>';
+
+    actionsEl.querySelector("#csv-import-btn").addEventListener("click", importCSV);
+    actionsEl.querySelector("#csv-cancel-btn").addEventListener("click", toggleUploadZone);
+  }
+
+  async function importCSV() {
+    var mapped = csvData.map(mapCSVRow);
+    var btn = document.getElementById("csv-import-btn");
+    btn.textContent = "Importing...";
+    btn.disabled = true;
+
+    var success = 0;
+    var errors = 0;
+    for (var i = 0; i < mapped.length; i++) {
+      try {
+        await saveLead(mapped[i]);
+        success++;
+      } catch (e) {
+        errors++;
+      }
+      // Update progress
+      btn.textContent = "Importing... " + (i + 1) + "/" + mapped.length;
+    }
+
+    leads = await fetchLeads();
+    renderAll();
+    toggleUploadZone();
+    toast(success + " leads imported" + (errors ? ", " + errors + " failed" : ""));
+  }
+
   // ---- Expose ----
   // Listen for search events from the page
   document.addEventListener("crm-search", function (e) {
@@ -755,5 +930,9 @@
     renderLeadList();
   });
 
-  window.CubicoCRM = { init: init, showAddLead: function () { showLeadModal(null); } };
+  window.CubicoCRM = {
+    init: init,
+    showAddLead: function () { showLeadModal(null); },
+    toggleUpload: toggleUploadZone,
+  };
 })();
