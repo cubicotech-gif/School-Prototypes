@@ -261,9 +261,12 @@
     });
 
     if (!filtered.length) {
-      el.innerHTML = '<div class="empty-state"><h3>No leads' +
-        (currentFilter !== "All" ? ' in "' + currentFilter + '"' : "") +
-        "</h3><p>Add your first school lead to get started.</p></div>";
+      el.innerHTML = '<div class="empty-state">' +
+        '<div class="empty-icon">--</div>' +
+        "<h3>No leads" + (currentFilter !== "All" ? ' in "' + currentFilter + '"' : "") + "</h3>" +
+        "<p>Add your first school lead or upload a CSV to get started.</p>" +
+        '<button class="btn btn-accent" onclick="CubicoCRM.showAddLead()">+ Add Lead</button>' +
+        "</div>";
       return;
     }
 
@@ -851,7 +854,7 @@
   }
 
   function detailField(label, val, href) {
-    if (!val) return '<div class="detail-field"><label>' + label + '</label><div class="val" style="color:var(--text-dim)">—</div></div>';
+    if (!val) return '<div class="detail-field"><label>' + label + '</label><div class="val empty">—</div></div>';
     var inner = href ? '<a href="' + esc(href) + '" target="_blank">' + esc(val) + "</a>" : esc(val);
     return '<div class="detail-field"><label>' + label + '</label><div class="val">' + inner + "</div></div>";
   }

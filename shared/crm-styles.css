@@ -344,8 +344,16 @@ body {
 @media (max-width: 700px) {
   .lead-row { grid-template-columns: 1fr auto; gap: 0.4rem; }
   .lead-followup, .lead-actions { display: none; }
-  .stats-bar { flex-wrap: wrap; border-radius: var(--radius); }
-  .stat-item { min-width: 60px; }
+  .stats-bar { overflow-x: auto; border-radius: var(--radius); }
+  .stat-item { min-width: 55px; padding: 0.75rem 0.35rem; }
+  .stat-count { font-size: 1.2rem; }
+  .stat-label { font-size: 0.58rem; }
+  .crm-header h1 { font-size: 1.3rem; }
+  .toolbar { gap: 0.4rem; }
+  .btn { padding: 0.5rem 0.8rem; font-size: 0.78rem; }
+  .detail-grid { gap: 1rem; }
+  .quick-actions { gap: 0.3rem; }
+  .quick-actions .btn { font-size: 0.7rem; padding: 0.35rem 0.6rem; }
 }
 
 /* ============ Lead Detail (expanded) ============ */
