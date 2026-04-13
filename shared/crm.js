@@ -68,6 +68,7 @@
   // ---- State ----
   var leads = [];
   var activities = {}; // { leadId: [...] }
+  var allActivities = []; // all activities for dashboard stats
   var currentFilter = "All";
   var searchQuery = "";
   var expandedLeadId = null;
@@ -167,14 +168,89 @@
       leads = [];
       console.warn("[CRM] Could not load leads:", e.message);
     }
+    // Fetch all activities for dashboard stats
+    try {
+      allActivities = await apiFetch("/rest/v1/lead_activity?order=created_at.desc&limit=500");
+    } catch (e) {
+      allActivities = [];
+    }
     setupUploadZone();
     renderAll();
   }
 
   function renderAll() {
+    renderDashboard();
     renderPipeline();
     renderAlerts();
     renderLeadList();
+  }
+
+  // ---- Dashboard ----
+  function renderDashboard() {
+    var el = document.getElementById("dashboard");
+    if (!el) return;
+
+    var totalLeads = leads.length;
+    var emailsSent = allActivities.filter(function (a) { return a.type === "email_sent"; }).length;
+    var repliesReceived = allActivities.filter(function (a) { return a.type === "email_received"; }).length;
+    var replyRate = emailsSent > 0 ? Math.round((repliesReceived / emailsSent) * 100) : 0;
+    var won = leads.filter(function (l) { return l.status === "Won"; }).length;
+    var conversionRate = totalLeads > 0 ? Math.round((won / totalLeads) * 100) : 0;
+
+    // Leads by country
+    var byCountry = {};
+    leads.forEach(function (l) {
+      var c = l.country || "Unknown";
+      byCountry[c] = (byCountry[c] || 0) + 1;
+    });
+
+    // Leads by source
+    var bySource = {};
+    leads.forEach(function (l) {
+      var s = l.source || l.found_from || "Unknown";
+      bySource[s] = (bySource[s] || 0) + 1;
+    });
+
+    // Sort by count descending
+    var countrySorted = Object.keys(byCountry).sort(function (a, b) { return byCountry[b] - byCountry[a]; });
+    var sourceSorted = Object.keys(bySource).sort(function (a, b) { return bySource[b] - bySource[a]; });
+
+    el.innerHTML =
+      '<div class="dash-cards">' +
+        dashCard(totalLeads, "Total Leads", "--accent") +
+        dashCard(emailsSent, "Emails Sent", "--accent") +
+        dashCard(repliesReceived, "Replies", "--success") +
+        dashCard(replyRate + "%", "Reply Rate", replyRate >= 20 ? "--success" : "--warn") +
+        dashCard(won, "Won", "--success") +
+        dashCard(conversionRate + "%", "Conversion", conversionRate >= 10 ? "--success" : "--warn") +
+      "</div>" +
+      '<div class="dash-breakdown">' +
+        '<div class="dash-list">' +
+          '<h4>By Country</h4>' +
+          countrySorted.map(function (c) {
+            var pct = Math.round((byCountry[c] / totalLeads) * 100) || 0;
+            return '<div class="dash-row"><span class="dash-row-label">' + esc(c) + '</span>' +
+              '<div class="dash-bar-wrap"><div class="dash-bar" style="width:' + pct + '%"></div></div>' +
+              '<span class="dash-row-val">' + byCountry[c] + '</span></div>';
+          }).join("") +
+        "</div>" +
+        '<div class="dash-list">' +
+          '<h4>By Source</h4>' +
+          sourceSorted.map(function (s) {
+            var pct = Math.round((bySource[s] / totalLeads) * 100) || 0;
+            return '<div class="dash-row"><span class="dash-row-label">' + esc(s) + '</span>' +
+              '<div class="dash-bar-wrap"><div class="dash-bar" style="width:' + pct + '%"></div></div>' +
+              '<span class="dash-row-val">' + bySource[s] + '</span></div>';
+          }).join("") +
+        "</div>" +
+      "</div>";
+  }
+
+  function dashCard(value, label, colorVar) {
+    return '<div class="dash-card">' +
+      '<div class="dash-card-val" style="color:var(' + colorVar + ')">' + value + '</div>' +
+      '<div class="dash-card-label">' + label + '</div>' +
+    '</div>';
   }
 
   // ---- Pipeline ----
