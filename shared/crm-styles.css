@@ -175,6 +175,17 @@ body {
   font-family: inherit;
 }
 .toolbar-search:focus { outline: none; border-color: var(--accent); }
+.toolbar-sort {
+  padding: 0.6rem 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.toolbar-sort:focus { outline: none; border-color: var(--accent); }
 
 /* ============ Buttons ============ */
 .btn {

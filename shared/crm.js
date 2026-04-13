@@ -74,6 +74,7 @@
   var currentFilter = "All";
   var searchQuery = "";
   var selectedIds = {}; // { id: true } for bulk selection
+  var currentSort = "newest"; // newest, oldest, follow-up, country, priority, name
   var expandedLeadId = null;
 
   // ---- Supabase helpers ----
@@ -419,6 +420,22 @@
           (l.tags || "").toLowerCase().indexOf(q) >= 0;
       }
       return true;
+    });
+
+    // Sort
+    var PRIORITY_ORDER = { Hot: 0, Warm: 1, Cold: 2 };
+    filtered.sort(function (a, b) {
+      switch (currentSort) {
+        case "oldest": return (a.created_at || "").localeCompare(b.created_at || "");
+        case "follow-up":
+          var fa = a.follow_up_date || "9999"; var fb = b.follow_up_date || "9999";
+          return fa.localeCompare(fb);
+        case "country": return (a.country || "").localeCompare(b.country || "");
+        case "priority":
+          return (PRIORITY_ORDER[a.priority] || 9) - (PRIORITY_ORDER[b.priority] || 9);
+        case "name": return (a.school_name || "").localeCompare(b.school_name || "");
+        default: return (b.created_at || "").localeCompare(a.created_at || "");
+      }
     });
 
     if (!filtered.length) {
@@ -1328,6 +1345,11 @@
   // Listen for search events from the page
   document.addEventListener("crm-search", function (e) {
     searchQuery = e.detail || "";
+    renderLeadList();
+  });
+
+  document.addEventListener("crm-sort", function (e) {
+    currentSort = e.detail || "newest";
     renderLeadList();
   });
 

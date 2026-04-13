@@ -46,6 +46,14 @@
     <!-- Toolbar -->
     <div class="toolbar">
       <input type="text" class="toolbar-search" id="search-input" placeholder="Search schools, contacts, cities, countries..." />
+      <select class="toolbar-sort" id="sort-select">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="follow-up">Follow-up Date</option>
+        <option value="priority">Priority</option>
+        <option value="country">Country</option>
+        <option value="name">Name A-Z</option>
+      </select>
       <button class="btn btn-ghost" onclick="CubicoCRM.exportCSV()">Export CSV</button>
       <button class="btn btn-ghost" onclick="CubicoCRM.toggleUpload()">Upload CSV</button>
       <button class="btn btn-accent" onclick="CubicoCRM.showAddLead()">+ Add Lead</button>
@@ -80,8 +88,11 @@
   <script>
     CubicoCRM.init();
     document.getElementById("search-input").addEventListener("input", function () {
-      // Expose search to CRM — trigger re-render via custom event
       var event = new CustomEvent("crm-search", { detail: this.value });
+      document.dispatchEvent(event);
+    });
+    document.getElementById("sort-select").addEventListener("change", function () {
+      var event = new CustomEvent("crm-sort", { detail: this.value });
       document.dispatchEvent(event);
     });
   </script>
