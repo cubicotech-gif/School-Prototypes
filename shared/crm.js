@@ -7,6 +7,7 @@
 //   alter table public.leads add column if not exists country text default 'Pakistan';
 //   alter table public.leads add column if not exists website_issue text;
 //   alter table public.leads add column if not exists found_from text;
+//   alter table public.leads add column if not exists tags text;
 //
 // (If starting fresh, use the full create table from v1 first,
 //  then run the alter statements above.)
@@ -22,6 +23,7 @@
   var SOURCES = ["Cold Email", "Referral", "Walk-in", "Social Media", "Website", "Other"];
   var COUNTRIES = ["Pakistan", "Saudi Arabia", "USA", "UAE", "UK", "Canada", "Other"];
   var FOUND_FROM = ["Google Maps", "Google Search", "School Directory", "Facebook", "Instagram", "LinkedIn", "Referral", "Walk-in / Drive-by", "Yellow Pages", "Website Listing", "Other"];
+  var TAG_PRESETS = ["Budget Issue", "Callback Requested", "Decision Maker Found", "Needs Proposal", "Interested", "Not Interested", "Wrong Contact", "No Website", "Outdated Website", "Premium Lead"];
   var ACTIVITY_TYPES = [
     { value: "email_sent", label: "Email Sent" },
     { value: "email_received", label: "Email Received" },
@@ -68,8 +70,11 @@
   // ---- State ----
   var leads = [];
   var activities = {}; // { leadId: [...] }
+  var allActivities = []; // all activities for dashboard stats
   var currentFilter = "All";
   var searchQuery = "";
+  var selectedIds = {}; // { id: true } for bulk selection
+  var currentSort = "newest"; // newest, oldest, follow-up, country, priority, name
   var expandedLeadId = null;
 
   // ---- Supabase helpers ----
@@ -167,14 +172,137 @@
       leads = [];
       console.warn("[CRM] Could not load leads:", e.message);
     }
+    // Fetch all activities for dashboard stats
+    try {
+      allActivities = await apiFetch("/rest/v1/lead_activity?order=created_at.desc&limit=500");
+    } catch (e) {
+      allActivities = [];
+    }
     setupUploadZone();
     renderAll();
   }
 
   function renderAll() {
+    renderDashboard();
     renderPipeline();
     renderAlerts();
+    renderBulkBar();
     renderLeadList();
+  }
+
+  // ---- Bulk Actions Bar ----
+  function renderBulkBar() {
+    var el = document.getElementById("bulk-bar");
+    if (!el) return;
+    var count = Object.keys(selectedIds).length;
+    if (!count) { el.classList.remove("visible"); return; }
+    el.classList.add("visible");
+    el.innerHTML =
+      '<span class="bulk-count">' + count + ' selected</span>' +
+      '<select id="bulk-status-select" class="bulk-select">' +
+        '<option value="">Change status...</option>' +
+        STATUSES.map(function (s) { return "<option>" + s + "</option>"; }).join("") +
+      '</select>' +
+      '<button class="btn btn-sm btn-danger" id="bulk-delete-btn">Delete Selected</button>' +
+      '<button class="btn btn-sm btn-ghost" id="bulk-clear-btn">Clear</button>';
+
+    el.querySelector("#bulk-status-select").addEventListener("change", async function () {
+      var status = this.value;
+      if (!status) return;
+      var ids = Object.keys(selectedIds);
+      for (var i = 0; i < ids.length; i++) {
+        await saveLead({ id: ids[i], status: status });
+      }
+      selectedIds = {};
+      leads = await fetchLeads();
+      renderAll();
+      toast(ids.length + " leads moved to " + status);
+    });
+
+    el.querySelector("#bulk-delete-btn").addEventListener("click", async function () {
+      var ids = Object.keys(selectedIds);
+      if (!confirm("Delete " + ids.length + " leads? This cannot be undone.")) return;
+      for (var i = 0; i < ids.length; i++) {
+        await deleteLead(ids[i]);
+      }
+      selectedIds = {};
+      leads = await fetchLeads();
+      renderAll();
+      toast(ids.length + " leads deleted");
+    });
+
+    el.querySelector("#bulk-clear-btn").addEventListener("click", function () {
+      selectedIds = {};
+      renderAll();
+    });
+  }
+
+  // ---- Dashboard ----
+  function renderDashboard() {
+    var el = document.getElementById("dashboard");
+    if (!el) return;
+
+    var totalLeads = leads.length;
+    var emailsSent = allActivities.filter(function (a) { return a.type === "email_sent"; }).length;
+    var repliesReceived = allActivities.filter(function (a) { return a.type === "email_received"; }).length;
+    var replyRate = emailsSent > 0 ? Math.round((repliesReceived / emailsSent) * 100) : 0;
+    var won = leads.filter(function (l) { return l.status === "Won"; }).length;
+    var conversionRate = totalLeads > 0 ? Math.round((won / totalLeads) * 100) : 0;
+
+    // Leads by country
+    var byCountry = {};
+    leads.forEach(function (l) {
+      var c = l.country || "Unknown";
+      byCountry[c] = (byCountry[c] || 0) + 1;
+    });
+
+    // Leads by source
+    var bySource = {};
+    leads.forEach(function (l) {
+      var s = l.source || l.found_from || "Unknown";
+      bySource[s] = (bySource[s] || 0) + 1;
+    });
+
+    // Sort by count descending
+    var countrySorted = Object.keys(byCountry).sort(function (a, b) { return byCountry[b] - byCountry[a]; });
+    var sourceSorted = Object.keys(bySource).sort(function (a, b) { return bySource[b] - bySource[a]; });
+
+    el.innerHTML =
+      '<div class="dash-cards">' +
+        dashCard(totalLeads, "Total Leads", "--accent") +
+        dashCard(emailsSent, "Emails Sent", "--accent") +
+        dashCard(repliesReceived, "Replies", "--success") +
+        dashCard(replyRate + "%", "Reply Rate", replyRate >= 20 ? "--success" : "--warn") +
+        dashCard(won, "Won", "--success") +
+        dashCard(conversionRate + "%", "Conversion", conversionRate >= 10 ? "--success" : "--warn") +
+      "</div>" +
+      '<div class="dash-breakdown">' +
+        '<div class="dash-list">' +
+          '<h4>By Country</h4>' +
+          countrySorted.map(function (c) {
+            var pct = Math.round((byCountry[c] / totalLeads) * 100) || 0;
+            return '<div class="dash-row"><span class="dash-row-label">' + esc(c) + '</span>' +
+              '<div class="dash-bar-wrap"><div class="dash-bar" style="width:' + pct + '%"></div></div>' +
+              '<span class="dash-row-val">' + byCountry[c] + '</span></div>';
+          }).join("") +
+        "</div>" +
+        '<div class="dash-list">' +
+          '<h4>By Source</h4>' +
+          sourceSorted.map(function (s) {
+            var pct = Math.round((bySource[s] / totalLeads) * 100) || 0;
+            return '<div class="dash-row"><span class="dash-row-label">' + esc(s) + '</span>' +
+              '<div class="dash-bar-wrap"><div class="dash-bar" style="width:' + pct + '%"></div></div>' +
+              '<span class="dash-row-val">' + bySource[s] + '</span></div>';
+          }).join("") +
+        "</div>" +
+      "</div>";
+  }
+
+  function dashCard(value, label, colorVar) {
+    return '<div class="dash-card">' +
+      '<div class="dash-card-val" style="color:var(' + colorVar + ')">' + value + '</div>' +
+      '<div class="dash-card-label">' + label + '</div>' +
+    '</div>';
   }
 
   // ---- Pipeline ----
@@ -219,26 +347,59 @@
     if (!overdue.length && !todayItems.length) { el.innerHTML = ""; return; }
 
     var html = "";
-    overdue.forEach(function (l) {
-      html += '<div class="alert alert-overdue" data-id="' + l.id + '">';
-      html += '<span class="alert-icon">!</span>';
-      html += '<span class="alert-text"><strong>' + esc(l.school_name) + "</strong> — overdue follow-up</span>";
-      html += '<span class="alert-date">was due ' + formatDate(l.follow_up_date) + "</span></div>";
-    });
-    todayItems.forEach(function (l) {
-      html += '<div class="alert alert-today" data-id="' + l.id + '">';
-      html += '<span class="alert-icon">*</span>';
-      html += '<span class="alert-text"><strong>' + esc(l.school_name) + "</strong> — follow up today</span>";
-      html += '<span class="alert-date">today</span></div>';
-    });
+    function alertRow(l, cls, dateText) {
+      return '<div class="alert ' + cls + '" data-id="' + l.id + '">' +
+        '<span class="alert-icon">' + (cls === "alert-overdue" ? "!" : "*") + '</span>' +
+        '<span class="alert-text"><strong>' + esc(l.school_name) + '</strong> — ' +
+          (cls === "alert-overdue" ? "overdue" : "follow up today") + '</span>' +
+        '<span class="alert-date">' + dateText + '</span>' +
+        '<div class="alert-actions">' +
+          '<button class="alert-btn" data-alert-action="email" title="Send email">@</button>' +
+          '<button class="alert-btn" data-alert-action="snooze" title="Snooze 2 days">+2d</button>' +
+          '<button class="alert-btn" data-alert-action="done" title="Mark done">ok</button>' +
+        '</div>' +
+      '</div>';
+    }
+    overdue.forEach(function (l) { html += alertRow(l, "alert-overdue", "due " + formatDate(l.follow_up_date)); });
+    todayItems.forEach(function (l) { html += alertRow(l, "alert-today", "today"); });
     el.innerHTML = html;
 
+    // Click alert text → expand lead
     el.querySelectorAll(".alert").forEach(function (a) {
-      a.addEventListener("click", function () {
+      a.addEventListener("click", function (e) {
+        if (e.target.closest(".alert-btn")) return;
         expandedLeadId = a.dataset.id;
         renderLeadList();
         var card = document.querySelector('.lead-card[data-id="' + a.dataset.id + '"]');
         if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
+
+    // Quick action buttons on alerts
+    el.querySelectorAll(".alert-btn").forEach(function (btn) {
+      btn.addEventListener("click", async function (e) {
+        e.stopPropagation();
+        var id = btn.closest(".alert").dataset.id;
+        var lead = findLead(id);
+        if (!lead) return;
+        var action = btn.dataset.alertAction;
+        if (action === "email") {
+          composeEmail(lead, "followup");
+        } else if (action === "snooze") {
+          var d = new Date(); d.setDate(d.getDate() + 2);
+          lead.follow_up_date = dateStr(d);
+          await saveLead({ id: id, follow_up_date: lead.follow_up_date });
+          leads = await fetchLeads();
+          renderAll();
+          toast("Snoozed 2 days → " + formatDate(lead.follow_up_date));
+        } else if (action === "done") {
+          lead.follow_up_date = null;
+          lead.next_action = null;
+          await saveLead({ id: id, follow_up_date: null, next_action: null });
+          leads = await fetchLeads();
+          renderAll();
+          toast("Follow-up cleared");
+        }
       });
     });
   }
@@ -255,9 +416,26 @@
           (l.email || "").toLowerCase().indexOf(q) >= 0 ||
           (l.city || "").toLowerCase().indexOf(q) >= 0 ||
           (l.country || "").toLowerCase().indexOf(q) >= 0 ||
-          (l.found_from || "").toLowerCase().indexOf(q) >= 0;
+          (l.found_from || "").toLowerCase().indexOf(q) >= 0 ||
+          (l.tags || "").toLowerCase().indexOf(q) >= 0;
       }
       return true;
+    });
+
+    // Sort
+    var PRIORITY_ORDER = { Hot: 0, Warm: 1, Cold: 2 };
+    filtered.sort(function (a, b) {
+      switch (currentSort) {
+        case "oldest": return (a.created_at || "").localeCompare(b.created_at || "");
+        case "follow-up":
+          var fa = a.follow_up_date || "9999"; var fb = b.follow_up_date || "9999";
+          return fa.localeCompare(fb);
+        case "country": return (a.country || "").localeCompare(b.country || "");
+        case "priority":
+          return (PRIORITY_ORDER[a.priority] || 9) - (PRIORITY_ORDER[b.priority] || 9);
+        case "name": return (a.school_name || "").localeCompare(b.school_name || "");
+        default: return (b.created_at || "").localeCompare(a.created_at || "");
+      }
     });
 
     if (!filtered.length) {
@@ -282,11 +460,15 @@
       if (l.contact_name) meta.push(esc(l.contact_name) + (l.contact_role ? " · " + esc(l.contact_role) : ""));
       if (l.city) meta.push(esc(l.city));
       if (l.found_from) meta.push(esc(l.found_from));
-      return '<div class="lead-card" data-id="' + l.id + '">' +
+      var seq = buildEmailSequence(l.id);
+      return '<div class="lead-card' + (selectedIds[l.id] ? " selected" : "") + '" data-id="' + l.id + '">' +
         '<div class="lead-row">' +
+          '<input type="checkbox" class="bulk-check" data-id="' + l.id + '"' + (selectedIds[l.id] ? " checked" : "") + ' />' +
           '<div class="lead-info">' +
             "<h3>" + priorityDot(l.priority) + countryFlag(l.country) + '<span class="school-name">' + esc(l.school_name) + "</span></h3>" +
             '<div class="lead-meta">' + (meta.length ? meta.join('<span class="sep">/</span>') : '<span style="color:var(--text-faint)">No contact</span>') + "</div>" +
+            seq +
+            renderTags(l.tags) +
           "</div>" +
           '<span class="status-chip status-' + slugify(l.status) + '">' + l.status + "</span>" +
           '<span class="lead-followup ' + fClass + '">' +
@@ -302,10 +484,22 @@
       "</div>";
     }).join("");
 
+    // Bind checkbox for bulk select
+    el.querySelectorAll(".bulk-check").forEach(function (cb) {
+      cb.addEventListener("click", function (e) { e.stopPropagation(); });
+      cb.addEventListener("change", function () {
+        var id = cb.dataset.id;
+        if (cb.checked) selectedIds[id] = true;
+        else delete selectedIds[id];
+        cb.closest(".lead-card").classList.toggle("selected", cb.checked);
+        renderBulkBar();
+      });
+    });
+
     // Bind row clicks to expand
     el.querySelectorAll(".lead-row").forEach(function (row) {
       row.addEventListener("click", function (e) {
-        if (e.target.closest(".action-btn")) return;
+        if (e.target.closest(".action-btn") || e.target.closest(".bulk-check")) return;
         var card = row.closest(".lead-card");
         var id = card.dataset.id;
         if (expandedLeadId === id) {
@@ -407,6 +601,11 @@
               '<input type="date" id="edit-followup" value="' + (lead.follow_up_date || "") + '" /></div>' +
             '<div class="field"><label>Next Action</label>' +
               '<input type="text" id="edit-next-action" value="' + esc(lead.next_action || "") + '" placeholder="e.g. Call to schedule meeting" /></div>' +
+            '<div class="field"><label>Tags</label>' +
+              '<div id="tag-container" class="tag-container">' + renderEditableTags(lead.tags, id) + '</div>' +
+              '<select id="add-tag-select" style="margin-top:0.3rem;"><option value="">+ Add tag...</option>' +
+                TAG_PRESETS.map(function (t) { return "<option>" + t + "</option>"; }).join("") +
+              '</select></div>' +
             '<div class="field"><label>Notes</label>' +
               '<textarea id="edit-notes" rows="3">' + esc(lead.notes || "") + "</textarea></div>" +
             '<div style="display:flex;gap:0.5rem;margin-top:0.5rem;">' +
@@ -442,6 +641,23 @@
     el.querySelector("#edit-lead-btn").addEventListener("click", function () { showLeadModal(lead); });
     el.querySelector("#delete-lead-btn").addEventListener("click", function () { confirmDelete(id); });
     el.querySelector("#add-activity-btn").addEventListener("click", function () { showActivityForm(id); });
+
+    // Tag add via dropdown
+    el.querySelector("#add-tag-select").addEventListener("change", async function () {
+      var tag = this.value;
+      if (!tag) return;
+      this.value = "";
+      var current = parseTags(lead.tags);
+      if (current.indexOf(tag) >= 0) return;
+      current.push(tag);
+      lead.tags = current.join(",");
+      await saveLead({ id: id, tags: lead.tags });
+      leads = await fetchLeads();
+      el.querySelector("#tag-container").innerHTML = renderEditableTags(lead.tags, id);
+      bindTagRemove(el, id);
+      renderLeadList();
+    });
+    bindTagRemove(el, id);
 
     // Status change auto-suggests follow-up
     el.querySelector("#edit-status").addEventListener("change", function () {
@@ -727,6 +943,10 @@
         notes: document.getElementById("m-notes").value.trim() || null,
       };
       if (!data.school_name) return toast("School name is required");
+      if (!isEdit) {
+        var dup = findDuplicate(data.school_name, data.email);
+        if (dup && !confirm('A lead named "' + dup.school_name + '" already exists. Add anyway?')) return;
+      }
       if (isEdit) data.id = lead.id;
       try {
         await saveLead(data);
@@ -793,6 +1013,17 @@
     return null;
   }
 
+  function findDuplicate(name, email) {
+    var n = (name || "").toLowerCase().trim();
+    var e = (email || "").toLowerCase().trim();
+    for (var i = 0; i < leads.length; i++) {
+      var l = leads[i];
+      if (n && (l.school_name || "").toLowerCase().trim() === n) return l;
+      if (e && e !== "" && (l.email || "").toLowerCase().trim() === e) return l;
+    }
+    return null;
+  }
+
   function todayStr() {
     return dateStr(new Date());
   }
@@ -853,6 +1084,81 @@
     return '<span class="country-flag">' + flag + "</span> ";
   }
 
+  // ---- Email Sequence Tracker ----
+  function buildEmailSequence(leadId) {
+    var acts = allActivities.filter(function (a) {
+      return a.lead_id === leadId && (a.type === "email_sent" || a.type === "email_received");
+    });
+    if (!acts.length) return "";
+
+    // Sort by date ascending
+    acts.sort(function (a, b) { return (a.created_at || "").localeCompare(b.created_at || ""); });
+
+    var steps = [];
+    var emailNum = 0;
+    for (var i = 0; i < acts.length; i++) {
+      if (acts[i].type === "email_sent") {
+        emailNum++;
+        steps.push({ type: "sent", label: emailNum === 1 ? "Email 1" : "F/U " + (emailNum - 1) });
+      } else {
+        steps.push({ type: "reply", label: "Reply" });
+      }
+    }
+
+    // Show max 6 steps to keep it compact
+    var display = steps.slice(0, 6);
+    var html = '<div class="email-seq">';
+    display.forEach(function (s, idx) {
+      var cls = s.type === "reply" ? "seq-reply" : "seq-sent";
+      html += '<span class="seq-step ' + cls + '">' + s.label + '</span>';
+      if (idx < display.length - 1) html += '<span class="seq-arrow"></span>';
+    });
+    if (steps.length > 6) html += '<span class="seq-more">+' + (steps.length - 6) + '</span>';
+    html += '</div>';
+    return html;
+  }
+
+  // ---- Tag helpers ----
+  function parseTags(tagStr) {
+    if (!tagStr) return [];
+    return tagStr.split(",").map(function (t) { return t.trim(); }).filter(Boolean);
+  }
+
+  function renderTags(tagStr) {
+    var tags = parseTags(tagStr);
+    if (!tags.length) return "";
+    return '<div class="lead-tags">' + tags.map(function (t) {
+      return '<span class="lead-tag">' + esc(t) + '</span>';
+    }).join("") + '</div>';
+  }
+
+  function renderEditableTags(tagStr, leadId) {
+    var tags = parseTags(tagStr);
+    if (!tags.length) return '<span style="font-size:0.78rem;color:var(--text-faint)">No tags</span>';
+    return tags.map(function (t) {
+      return '<span class="lead-tag editable">' + esc(t) + ' <button class="tag-remove" data-tag="' + esc(t) + '" data-lead="' + leadId + '">x</button></span>';
+    }).join("");
+  }
+
+  function bindTagRemove(el, leadId) {
+    el.querySelectorAll(".tag-remove").forEach(function (btn) {
+      btn.addEventListener("click", async function (e) {
+        e.stopPropagation();
+        var tag = btn.dataset.tag;
+        var lead = findLead(leadId);
+        if (!lead) return;
+        var current = parseTags(lead.tags).filter(function (t) { return t !== tag; });
+        lead.tags = current.join(",") || null;
+        await saveLead({ id: leadId, tags: lead.tags });
+        leads = await fetchLeads();
+        var container = el.querySelector("#tag-container");
+        if (container) container.innerHTML = renderEditableTags(lead.tags, leadId);
+        bindTagRemove(el, leadId);
+        renderLeadList();
+      });
+    });
+  }
+
   function detailField(label, val, href) {
     if (!val) return '<div class="detail-field"><label>' + label + '</label><div class="val empty">—</div></div>';
     var inner = href ? '<a href="' + esc(href) + '" target="_blank">' + esc(val) + "</a>" : esc(val);
@@ -867,6 +1173,28 @@
     el.textContent = msg;
     document.body.appendChild(el);
     setTimeout(function () { el.remove(); }, 2500);
+  }
+
+  // ---- CSV Export ----
+  function exportCSV() {
+    if (!leads.length) return toast("No leads to export");
+    var cols = ["school_name","country","city","address","contact_name","contact_role","email","phone","whatsapp","website","website_issue","found_from","source","status","priority","tags","prototype_url","follow_up_date","next_action","notes","created_at"];
+    var header = cols.join(",");
+    var rows = leads.map(function (l) {
+      return cols.map(function (c) {
+        var val = (l[c] || "").toString().replace(/"/g, '""');
+        return '"' + val + '"';
+      }).join(",");
+    });
+    var csv = header + "\n" + rows.join("\n");
+    var blob = new Blob([csv], { type: "text/csv" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "cubico-leads-" + todayStr() + ".csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Exported " + leads.length + " leads");
   }
 
   // ---- CSV Bulk Upload ----
@@ -1026,21 +1354,27 @@
 
     var success = 0;
     var errors = 0;
+    var skipped = 0;
     for (var i = 0; i < mapped.length; i++) {
-      try {
-        await saveLead(mapped[i]);
-        success++;
-      } catch (e) {
-        errors++;
+      var dup = findDuplicate(mapped[i].school_name, mapped[i].email);
+      if (dup) { skipped++; }
+      else {
+        try {
+          await saveLead(mapped[i]);
+          success++;
+          // Add to leads array so subsequent rows can check against it
+          leads.push(mapped[i]);
+        } catch (e) {
+          errors++;
+        }
       }
-      // Update progress
       btn.textContent = "Importing... " + (i + 1) + "/" + mapped.length;
     }
 
     leads = await fetchLeads();
     renderAll();
     toggleUploadZone();
-    toast(success + " leads imported" + (errors ? ", " + errors + " failed" : ""));
+    toast(success + " imported" + (skipped ? ", " + skipped + " duplicates skipped" : "") + (errors ? ", " + errors + " failed" : ""));
   }
 
   // ---- Expose ----
@@ -1050,9 +1384,15 @@
     renderLeadList();
   });
 
+  document.addEventListener("crm-sort", function (e) {
+    currentSort = e.detail || "newest";
+    renderLeadList();
+  });
+
   window.CubicoCRM = {
     init: init,
     showAddLead: function () { showLeadModal(null); },
     toggleUpload: toggleUploadZone,
+    exportCSV: exportCSV,
   };
 })();
