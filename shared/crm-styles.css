@@ -276,7 +276,7 @@ body {
 
 .lead-row {
   display: grid;
-  grid-template-columns: 1fr auto auto auto auto;
+  grid-template-columns: auto 1fr auto auto auto auto;
   align-items: center;
   gap: 0.75rem;
   padding: 0.85rem 1.1rem;
@@ -636,6 +636,31 @@ body {
   border-color: var(--accent-border);
   background: var(--accent-dim);
 }
+
+/* ============ Bulk Actions ============ */
+.bulk-bar {
+  display: none;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1rem;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  margin-bottom: 0.75rem;
+}
+.bulk-bar.visible { display: flex; }
+.bulk-count { font-size: 0.82rem; font-weight: 600; color: var(--accent); white-space: nowrap; }
+.bulk-select {
+  padding: 0.35rem 0.6rem;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-size: 0.78rem; font-family: inherit; cursor: pointer;
+}
+.bulk-check {
+  width: 16px; height: 16px; cursor: pointer;
+  accent-color: var(--accent); flex-shrink: 0;
+}
+.lead-card.selected { border-color: var(--accent-border); background: var(--accent-dim); }
 
 /* ============ Tags ============ */
 .lead-tags { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-top: 0.2rem; }

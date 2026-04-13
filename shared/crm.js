@@ -73,6 +73,7 @@
   var allActivities = []; // all activities for dashboard stats
   var currentFilter = "All";
   var searchQuery = "";
+  var selectedIds = {}; // { id: true } for bulk selection
   var expandedLeadId = null;
 
   // ---- Supabase helpers ----
@@ -184,7 +185,55 @@
     renderDashboard();
     renderPipeline();
     renderAlerts();
+    renderBulkBar();
     renderLeadList();
+  }
+
+  // ---- Bulk Actions Bar ----
+  function renderBulkBar() {
+    var el = document.getElementById("bulk-bar");
+    if (!el) return;
+    var count = Object.keys(selectedIds).length;
+    if (!count) { el.classList.remove("visible"); return; }
+    el.classList.add("visible");
+    el.innerHTML =
+      '<span class="bulk-count">' + count + ' selected</span>' +
+      '<select id="bulk-status-select" class="bulk-select">' +
+        '<option value="">Change status...</option>' +
+        STATUSES.map(function (s) { return "<option>" + s + "</option>"; }).join("") +
+      '</select>' +
+      '<button class="btn btn-sm btn-danger" id="bulk-delete-btn">Delete Selected</button>' +
+      '<button class="btn btn-sm btn-ghost" id="bulk-clear-btn">Clear</button>';
+
+    el.querySelector("#bulk-status-select").addEventListener("change", async function () {
+      var status = this.value;
+      if (!status) return;
+      var ids = Object.keys(selectedIds);
+      for (var i = 0; i < ids.length; i++) {
+        await saveLead({ id: ids[i], status: status });
+      }
+      selectedIds = {};
+      leads = await fetchLeads();
+      renderAll();
+      toast(ids.length + " leads moved to " + status);
+    });
+
+    el.querySelector("#bulk-delete-btn").addEventListener("click", async function () {
+      var ids = Object.keys(selectedIds);
+      if (!confirm("Delete " + ids.length + " leads? This cannot be undone.")) return;
+      for (var i = 0; i < ids.length; i++) {
+        await deleteLead(ids[i]);
+      }
+      selectedIds = {};
+      leads = await fetchLeads();
+      renderAll();
+      toast(ids.length + " leads deleted");
+    });
+
+    el.querySelector("#bulk-clear-btn").addEventListener("click", function () {
+      selectedIds = {};
+      renderAll();
+    });
   }
 
   // ---- Dashboard ----
@@ -394,8 +443,9 @@
       if (l.contact_name) meta.push(esc(l.contact_name) + (l.contact_role ? " · " + esc(l.contact_role) : ""));
       if (l.city) meta.push(esc(l.city));
       if (l.found_from) meta.push(esc(l.found_from));
-      return '<div class="lead-card" data-id="' + l.id + '">' +
+      return '<div class="lead-card' + (selectedIds[l.id] ? " selected" : "") + '" data-id="' + l.id + '">' +
         '<div class="lead-row">' +
+          '<input type="checkbox" class="bulk-check" data-id="' + l.id + '"' + (selectedIds[l.id] ? " checked" : "") + ' />' +
           '<div class="lead-info">' +
             "<h3>" + priorityDot(l.priority) + countryFlag(l.country) + '<span class="school-name">' + esc(l.school_name) + "</span></h3>" +
             '<div class="lead-meta">' + (meta.length ? meta.join('<span class="sep">/</span>') : '<span style="color:var(--text-faint)">No contact</span>') + "</div>" +
@@ -415,10 +465,22 @@
       "</div>";
     }).join("");
 
+    // Bind checkbox for bulk select
+    el.querySelectorAll(".bulk-check").forEach(function (cb) {
+      cb.addEventListener("click", function (e) { e.stopPropagation(); });
+      cb.addEventListener("change", function () {
+        var id = cb.dataset.id;
+        if (cb.checked) selectedIds[id] = true;
+        else delete selectedIds[id];
+        cb.closest(".lead-card").classList.toggle("selected", cb.checked);
+        renderBulkBar();
+      });
+    });
+
     // Bind row clicks to expand
     el.querySelectorAll(".lead-row").forEach(function (row) {
       row.addEventListener("click", function (e) {
-        if (e.target.closest(".action-btn")) return;
+        if (e.target.closest(".action-btn") || e.target.closest(".bulk-check")) return;
         var card = row.closest(".lead-card");
         var id = card.dataset.id;
         if (expandedLeadId === id) {
