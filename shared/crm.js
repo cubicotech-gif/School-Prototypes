@@ -460,12 +460,14 @@
       if (l.contact_name) meta.push(esc(l.contact_name) + (l.contact_role ? " · " + esc(l.contact_role) : ""));
       if (l.city) meta.push(esc(l.city));
       if (l.found_from) meta.push(esc(l.found_from));
+      var seq = buildEmailSequence(l.id);
       return '<div class="lead-card' + (selectedIds[l.id] ? " selected" : "") + '" data-id="' + l.id + '">' +
         '<div class="lead-row">' +
           '<input type="checkbox" class="bulk-check" data-id="' + l.id + '"' + (selectedIds[l.id] ? " checked" : "") + ' />' +
           '<div class="lead-info">' +
             "<h3>" + priorityDot(l.priority) + countryFlag(l.country) + '<span class="school-name">' + esc(l.school_name) + "</span></h3>" +
             '<div class="lead-meta">' + (meta.length ? meta.join('<span class="sep">/</span>') : '<span style="color:var(--text-faint)">No contact</span>') + "</div>" +
+            seq +
             renderTags(l.tags) +
           "</div>" +
           '<span class="status-chip status-' + slugify(l.status) + '">' + l.status + "</span>" +
@@ -1080,6 +1082,40 @@
     // Convert country code to flag emoji via regional indicator symbols
     var flag = String.fromCodePoint(0x1F1E6 + code.charCodeAt(0) - 65, 0x1F1E6 + code.charCodeAt(1) - 65);
     return '<span class="country-flag">' + flag + "</span> ";
+  }
+
+  // ---- Email Sequence Tracker ----
+  function buildEmailSequence(leadId) {
+    var acts = allActivities.filter(function (a) {
+      return a.lead_id === leadId && (a.type === "email_sent" || a.type === "email_received");
+    });
+    if (!acts.length) return "";
+
+    // Sort by date ascending
+    acts.sort(function (a, b) { return (a.created_at || "").localeCompare(b.created_at || ""); });
+
+    var steps = [];
+    var emailNum = 0;
+    for (var i = 0; i < acts.length; i++) {
+      if (acts[i].type === "email_sent") {
+        emailNum++;
+        steps.push({ type: "sent", label: emailNum === 1 ? "Email 1" : "F/U " + (emailNum - 1) });
+      } else {
+        steps.push({ type: "reply", label: "Reply" });
+      }
+    }
+
+    // Show max 6 steps to keep it compact
+    var display = steps.slice(0, 6);
+    var html = '<div class="email-seq">';
+    display.forEach(function (s, idx) {
+      var cls = s.type === "reply" ? "seq-reply" : "seq-sent";
+      html += '<span class="seq-step ' + cls + '">' + s.label + '</span>';
+      if (idx < display.length - 1) html += '<span class="seq-arrow"></span>';
+    });
+    if (steps.length > 6) html += '<span class="seq-more">+' + (steps.length - 6) + '</span>';
+    html += '</div>';
+    return html;
   }
 
   // ---- Tag helpers ----

@@ -648,6 +648,29 @@ body {
   background: var(--accent-dim);
 }
 
+/* ============ Email Sequence Tracker ============ */
+.email-seq {
+  display: flex; align-items: center; gap: 0.15rem;
+  margin-top: 0.2rem; flex-wrap: wrap;
+}
+.seq-step {
+  font-size: 0.58rem;
+  font-weight: 600;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.seq-sent { background: var(--accent-dim); color: var(--accent); }
+.seq-reply { background: var(--success-dim); color: var(--success); }
+.seq-arrow {
+  width: 8px; height: 1px; background: var(--border-light);
+  display: inline-block; flex-shrink: 0;
+}
+.seq-more {
+  font-size: 0.58rem; color: var(--text-faint); font-weight: 500;
+  padding-left: 0.15rem;
+}
+
 /* ============ Bulk Actions ============ */
 .bulk-bar {
   display: none;
