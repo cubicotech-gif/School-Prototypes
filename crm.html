@@ -57,6 +57,7 @@
       <button class="btn btn-ghost" onclick="CubicoCRM.exportCSV()">Export CSV</button>
       <button class="btn btn-ghost" onclick="CubicoCRM.toggleUpload()">Upload CSV</button>
       <button class="btn btn-accent" onclick="CubicoCRM.showAddLead()">+ Add Lead</button>
+      <button class="btn btn-ghost" id="view-toggle" onclick="CubicoCRM.toggleView()">List View</button>
     </div>
 
     <!-- CSV Upload Zone -->
@@ -70,6 +71,9 @@
       <div class="upload-preview"></div>
       <div class="upload-actions"></div>
     </div>
+
+    <!-- Kanban board -->
+    <div id="kanban"></div>
 
     <!-- Bulk actions bar -->
     <div id="bulk-bar" class="bulk-bar"></div>

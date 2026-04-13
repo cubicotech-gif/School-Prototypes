@@ -324,14 +324,17 @@ body {
   white-space: nowrap;
 }
 .status-new { background: var(--accent-dim); color: var(--accent); }
-.status-researching { background: var(--purple-dim); color: var(--purple); }
-.status-emailed { background: var(--warn-dim); color: var(--warn); }
+.status-contacted { background: var(--warn-dim); color: var(--warn); }
+.status-follow-up { background: var(--purple-dim); color: var(--purple); }
 .status-replied { background: var(--success-dim); color: var(--success); }
 .status-meeting { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
-.status-proposal { background: rgba(244, 114, 182, 0.15); color: #f472b6; }
 .status-won { background: var(--success-dim); color: var(--success); }
 .status-lost { background: var(--danger-dim); color: var(--danger); }
-.status-on-hold { background: rgba(148,163,184,0.15); color: #94a3b8; }
+/* Legacy */
+.status-researching { background: var(--accent-dim); color: var(--accent); }
+.status-emailed { background: var(--warn-dim); color: var(--warn); }
+.status-proposal { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+.status-on-hold { background: var(--purple-dim); color: var(--purple); }
 
 /* Priority */
 .priority-dot {
@@ -646,6 +649,85 @@ body {
   color: var(--accent);
   border-color: var(--accent-border);
   background: var(--accent-dim);
+}
+
+/* ============ Kanban Board ============ */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.6rem;
+  min-height: 400px;
+}
+.kanban-col {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex; flex-direction: column;
+  min-height: 200px;
+}
+.kanban-col-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.75rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+}
+.kanban-col-title {
+  font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.kanban-col-count {
+  font-size: 0.72rem; font-weight: 700; color: var(--text);
+  background: var(--bg); padding: 0.15rem 0.45rem;
+  border-radius: 100px;
+}
+.kanban-col-body {
+  flex: 1; padding: 0.5rem;
+  display: flex; flex-direction: column; gap: 0.4rem;
+  overflow-y: auto;
+  max-height: 500px;
+  transition: background 0.15s;
+}
+.kanban-col-body.drag-over { background: var(--accent-dim); }
+
+.kanban-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.65rem;
+  cursor: grab;
+  transition: all 0.15s;
+}
+.kanban-card:hover { border-color: var(--border-light); }
+.kanban-card.dragging { opacity: 0.4; }
+.kanban-card.urgent { border-left: 3px solid var(--danger); }
+
+.kanban-card-top {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 0.3rem; margin-bottom: 0.2rem;
+}
+.kanban-card-name {
+  font-size: 0.78rem; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.kanban-card-contact {
+  font-size: 0.68rem; color: var(--text-dim); margin-bottom: 0.2rem;
+}
+.kanban-card-date {
+  font-size: 0.62rem; color: var(--text-faint); margin-top: 0.2rem;
+}
+.kanban-card-date.overdue { color: var(--danger); font-weight: 600; }
+
+@media (max-width: 900px) {
+  .kanban-board {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .kanban-board {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+  }
+  .kanban-card-name { font-size: 0.72rem; }
 }
 
 /* ============ Email Sequence Tracker ============ */
