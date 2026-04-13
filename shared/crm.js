@@ -803,6 +803,10 @@
         notes: document.getElementById("m-notes").value.trim() || null,
       };
       if (!data.school_name) return toast("School name is required");
+      if (!isEdit) {
+        var dup = findDuplicate(data.school_name, data.email);
+        if (dup && !confirm('A lead named "' + dup.school_name + '" already exists. Add anyway?')) return;
+      }
       if (isEdit) data.id = lead.id;
       try {
         await saveLead(data);
@@ -866,6 +870,17 @@
   // ---- Helpers ----
   function findLead(id) {
     for (var i = 0; i < leads.length; i++) { if (leads[i].id === id) return leads[i]; }
+    return null;
+  }
+
+  function findDuplicate(name, email) {
+    var n = (name || "").toLowerCase().trim();
+    var e = (email || "").toLowerCase().trim();
+    for (var i = 0; i < leads.length; i++) {
+      var l = leads[i];
+      if (n && (l.school_name || "").toLowerCase().trim() === n) return l;
+      if (e && e !== "" && (l.email || "").toLowerCase().trim() === e) return l;
+    }
     return null;
   }
 
@@ -1124,21 +1139,27 @@
 
     var success = 0;
     var errors = 0;
+    var skipped = 0;
     for (var i = 0; i < mapped.length; i++) {
-      try {
-        await saveLead(mapped[i]);
-        success++;
-      } catch (e) {
-        errors++;
+      var dup = findDuplicate(mapped[i].school_name, mapped[i].email);
+      if (dup) { skipped++; }
+      else {
+        try {
+          await saveLead(mapped[i]);
+          success++;
+          // Add to leads array so subsequent rows can check against it
+          leads.push(mapped[i]);
+        } catch (e) {
+          errors++;
+        }
       }
-      // Update progress
       btn.textContent = "Importing... " + (i + 1) + "/" + mapped.length;
     }
 
     leads = await fetchLeads();
     renderAll();
     toggleUploadZone();
-    toast(success + " leads imported" + (errors ? ", " + errors + " failed" : ""));
+    toast(success + " imported" + (skipped ? ", " + skipped + " duplicates skipped" : "") + (errors ? ", " + errors + " failed" : ""));
   }
 
   // ---- Expose ----
