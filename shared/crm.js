@@ -749,10 +749,12 @@
               '</select></div>' +
             '<div class="field"><label>Notes</label>' +
               '<textarea id="edit-notes" rows="3">' + esc(lead.notes || "") + "</textarea></div>" +
-            '<div style="display:flex;gap:0.5rem;margin-top:0.5rem;">' +
+            '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem;">' +
               '<button class="btn btn-sm btn-accent" id="save-lead-btn">Save Changes</button>' +
-              '<button class="btn btn-sm btn-ghost" id="edit-lead-btn">Edit Full Details</button>' +
-              '<button class="btn btn-sm btn-danger" id="delete-lead-btn">Delete</button>' +
+              '<button class="btn btn-sm btn-ghost" id="edit-lead-btn">Edit Details</button>' +
+              (lead.status !== "Won" ? '<button class="btn btn-sm btn-success" id="mark-won-btn">Won</button>' : '') +
+              (lead.status !== "Lost" ? '<button class="btn btn-sm btn-danger" id="mark-lost-btn">Lost</button>' : '') +
+              '<button class="btn btn-sm btn-danger" style="margin-left:auto;" id="delete-lead-btn">Delete</button>' +
             "</div>" +
           "</div>" +
           '<div class="detail-section">' +
@@ -782,6 +784,12 @@
     el.querySelector("#edit-lead-btn").addEventListener("click", function () { showLeadModal(lead); });
     el.querySelector("#delete-lead-btn").addEventListener("click", function () { confirmDelete(id); });
     el.querySelector("#add-activity-btn").addEventListener("click", function () { showActivityForm(id); });
+
+    // Quick close buttons
+    var wonBtn = el.querySelector("#mark-won-btn");
+    var lostBtn = el.querySelector("#mark-lost-btn");
+    if (wonBtn) wonBtn.addEventListener("click", function () { quickClose(id, "Won"); });
+    if (lostBtn) lostBtn.addEventListener("click", function () { quickClose(id, "Lost"); });
 
     // Tag add via dropdown
     el.querySelector("#add-tag-select").addEventListener("change", async function () {
@@ -876,8 +884,18 @@
       };
       try {
         await addActivity(act);
+        // Auto-move to Meeting if logging a meeting activity
+        var lead = findLead(leadId);
+        if (act.type === "meeting" && lead && lead.status !== "Meeting" && lead.status !== "Won" && lead.status !== "Lost") {
+          var oldS = lead.status;
+          await saveLead({ id: leadId, status: "Meeting", next_action: "Send proposal with prototype link" });
+          await addActivity({ lead_id: leadId, type: "status_change", subject: oldS + " → Meeting" });
+        }
         activities[leadId] = await fetchActivities(leadId);
-        renderLeadDetail(leadId);
+        leads = await fetchLeads();
+        leads.forEach(function (l) { if (STATUS_MAP[l.status]) l.status = STATUS_MAP[l.status]; });
+        renderAll();
+        if (expandedLeadId === leadId) renderLeadDetail(leadId);
         toast("Activity logged");
       } catch (e) { toast("Error: " + e.message); }
     });
@@ -949,13 +967,20 @@
           subject: "Sent: " + subj,
           body: "To: " + to + "\n\n" + b,
         });
-        // Auto-update status to Emailed if currently New or Researching
-        if (lead.status === "New" || lead.status === "Researching") {
-          lead.status = "Emailed";
+        // Auto-move to Contacted when first email sent
+        if (lead.status === "New") {
+          lead.status = "Contacted";
           var d = new Date(); d.setDate(d.getDate() + 3);
           lead.follow_up_date = dateStr(d);
           lead.next_action = "Follow up if no reply in 3 days";
-          await saveLead({ id: leadId, status: "Emailed", follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+          await saveLead({ id: leadId, status: "Contacted", follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+          await addActivity({ lead_id: leadId, type: "status_change", subject: "New → Contacted" });
+        } else if (lead.status === "Follow Up") {
+          // Sending follow-up — keep in Follow Up but update date
+          var d2 = new Date(); d2.setDate(d2.getDate() + 3);
+          lead.follow_up_date = dateStr(d2);
+          lead.next_action = "Wait for reply — send another follow-up if needed";
+          await saveLead({ id: leadId, follow_up_date: lead.follow_up_date, next_action: lead.next_action });
         }
         activities[leadId] = await fetchActivities(leadId);
         leads = await fetchLeads();
@@ -977,13 +1002,15 @@
         type: "email_received",
         subject: "Reply received from " + (lead.contact_name || lead.school_name),
       });
-      // Auto-update status to Replied
-      if (lead.status === "Emailed") {
+      // Auto-move to Replied from any pre-reply stage
+      if (lead.status === "Contacted" || lead.status === "Follow Up" || lead.status === "New") {
+        var oldS = lead.status;
         lead.status = "Replied";
         lead.next_action = "Schedule a meeting or call";
         var d = new Date(); d.setDate(d.getDate() + 1);
         lead.follow_up_date = dateStr(d);
         await saveLead({ id: leadId, status: "Replied", follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+        await addActivity({ lead_id: leadId, type: "status_change", subject: oldS + " → Replied" });
       }
       activities[leadId] = await fetchActivities(leadId);
       leads = await fetchLeads();
@@ -1101,6 +1128,25 @@
 
   function closeModal() {
     document.getElementById("modal-overlay").classList.add("hidden");
+  }
+
+  async function quickClose(id, status) {
+    var lead = findLead(id);
+    if (!lead) return;
+    var old = lead.status;
+    lead.status = status;
+    lead.follow_up_date = null;
+    lead.next_action = NEXT_ACTIONS[status] || "";
+    try {
+      await saveLead({ id: id, status: status, follow_up_date: null, next_action: lead.next_action });
+      await addActivity({ lead_id: id, type: "status_change", subject: old + " → " + status });
+      leads = await fetchLeads();
+      leads.forEach(function (l) { if (STATUS_MAP[l.status]) l.status = STATUS_MAP[l.status]; });
+      allActivities = await apiFetch("/rest/v1/lead_activity?order=created_at.desc&limit=500");
+      closeModal();
+      renderAll();
+      toast("Marked as " + status);
+    } catch (e) { toast("Error: " + e.message); }
   }
 
   async function confirmDelete(id) {
