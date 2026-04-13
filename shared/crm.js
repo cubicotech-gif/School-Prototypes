@@ -1,56 +1,15 @@
 // =============================================================
-// Cubico CRM — Lead Tracking for School Prototypes
+// Cubico CRM v2 — Lead Tracking for School Prototypes
 // =============================================================
 //
-// SUPABASE SQL — paste this into SQL Editor → Run (one time):
+// SUPABASE SQL — Run this ONCE to add new columns (v2):
 //
-//   create table if not exists public.leads (
-//     id uuid primary key default gen_random_uuid(),
-//     school_name text not null,
-//     school_slug text,
-//     contact_name text,
-//     contact_role text,
-//     email text,
-//     phone text,
-//     whatsapp text,
-//     city text default 'Karachi',
-//     address text,
-//     website text,
-//     status text not null default 'New',
-//     priority text default 'Warm',
-//     source text,
-//     prototype_url text,
-//     notes text,
-//     next_action text,
-//     follow_up_date date,
-//     created_at timestamptz not null default now(),
-//     updated_at timestamptz not null default now()
-//   );
+//   alter table public.leads add column if not exists country text default 'Pakistan';
+//   alter table public.leads add column if not exists website_issue text;
+//   alter table public.leads add column if not exists found_from text;
 //
-//   create table if not exists public.lead_activity (
-//     id uuid primary key default gen_random_uuid(),
-//     lead_id uuid not null references public.leads(id) on delete cascade,
-//     type text not null,
-//     subject text,
-//     body text,
-//     created_at timestamptz not null default now()
-//   );
-//
-//   alter table public.leads enable row level security;
-//   alter table public.lead_activity enable row level security;
-//
-//   create policy "Public read leads" on public.leads for select using (true);
-//   create policy "Public insert leads" on public.leads for insert with check (true);
-//   create policy "Public update leads" on public.leads for update using (true);
-//   create policy "Public delete leads" on public.leads for delete using (true);
-//   create policy "Public read lead_activity" on public.lead_activity for select using (true);
-//   create policy "Public insert lead_activity" on public.lead_activity for insert with check (true);
-//   create policy "Public update lead_activity" on public.lead_activity for update using (true);
-//   create policy "Public delete lead_activity" on public.lead_activity for delete using (true);
-//
-//   create index if not exists idx_leads_status on public.leads(status);
-//   create index if not exists idx_leads_follow_up on public.leads(follow_up_date);
-//   create index if not exists idx_lead_activity_lead on public.lead_activity(lead_id);
+// (If starting fresh, use the full create table from v1 first,
+//  then run the alter statements above.)
 //
 // =============================================================
 
@@ -61,6 +20,8 @@
   var STATUSES = ["New", "Researching", "Emailed", "Replied", "Meeting", "Proposal", "Won", "Lost", "On Hold"];
   var PRIORITIES = ["Hot", "Warm", "Cold"];
   var SOURCES = ["Cold Email", "Referral", "Walk-in", "Social Media", "Website", "Other"];
+  var COUNTRIES = ["Pakistan", "Saudi Arabia", "USA", "UAE", "UK", "Canada", "Other"];
+  var FOUND_FROM = ["Google Maps", "Google Search", "School Directory", "Facebook", "Instagram", "LinkedIn", "Referral", "Walk-in / Drive-by", "Yellow Pages", "Website Listing", "Other"];
   var ACTIVITY_TYPES = [
     { value: "email_sent", label: "Email Sent" },
     { value: "email_received", label: "Email Received" },
@@ -206,6 +167,7 @@
       leads = [];
       console.warn("[CRM] Could not load leads:", e.message);
     }
+    setupUploadZone();
     renderAll();
   }
 
@@ -222,18 +184,18 @@
     STATUSES.forEach(function (s) { counts[s] = 0; });
     leads.forEach(function (l) { if (counts[l.status] !== undefined) counts[l.status]++; });
 
-    var html = '<div class="pipe-card' + (currentFilter === "All" ? " active" : "") + '" data-filter="All">';
-    html += '<div class="pipe-count">' + leads.length + "</div>";
-    html += '<div class="pipe-label">All</div></div>';
+    var html = '<div class="stat-item' + (currentFilter === "All" ? " active" : "") + '" data-filter="All">';
+    html += '<div class="stat-count">' + leads.length + "</div>";
+    html += '<div class="stat-label">All</div></div>';
 
     STATUSES.forEach(function (s) {
-      html += '<div class="pipe-card' + (currentFilter === s ? " active" : "") + '" data-filter="' + s + '">';
-      html += '<div class="pipe-count">' + counts[s] + "</div>";
-      html += '<div class="pipe-label">' + s + "</div></div>";
+      html += '<div class="stat-item' + (currentFilter === s ? " active" : "") + '" data-filter="' + s + '">';
+      html += '<div class="stat-count">' + counts[s] + "</div>";
+      html += '<div class="stat-label">' + s + "</div></div>";
     });
     el.innerHTML = html;
 
-    el.querySelectorAll(".pipe-card").forEach(function (card) {
+    el.querySelectorAll(".stat-item").forEach(function (card) {
       card.addEventListener("click", function () {
         currentFilter = card.dataset.filter;
         renderAll();
@@ -290,15 +252,21 @@
         var q = searchQuery.toLowerCase();
         return (l.school_name || "").toLowerCase().indexOf(q) >= 0 ||
           (l.contact_name || "").toLowerCase().indexOf(q) >= 0 ||
-          (l.email || "").toLowerCase().indexOf(q) >= 0;
+          (l.email || "").toLowerCase().indexOf(q) >= 0 ||
+          (l.city || "").toLowerCase().indexOf(q) >= 0 ||
+          (l.country || "").toLowerCase().indexOf(q) >= 0 ||
+          (l.found_from || "").toLowerCase().indexOf(q) >= 0;
       }
       return true;
     });
 
     if (!filtered.length) {
-      el.innerHTML = '<div class="empty-state"><h3>No leads' +
-        (currentFilter !== "All" ? ' in "' + currentFilter + '"' : "") +
-        "</h3><p>Add your first school lead to get started.</p></div>";
+      el.innerHTML = '<div class="empty-state">' +
+        '<div class="empty-icon">--</div>' +
+        "<h3>No leads" + (currentFilter !== "All" ? ' in "' + currentFilter + '"' : "") + "</h3>" +
+        "<p>Add your first school lead or upload a CSV to get started.</p>" +
+        '<button class="btn btn-accent" onclick="CubicoCRM.showAddLead()">+ Add Lead</button>' +
+        "</div>";
       return;
     }
 
@@ -310,12 +278,15 @@
         else if (l.follow_up_date === today) fClass = "today";
       }
       var expanded = expandedLeadId === l.id;
+      var meta = [];
+      if (l.contact_name) meta.push(esc(l.contact_name) + (l.contact_role ? " · " + esc(l.contact_role) : ""));
+      if (l.city) meta.push(esc(l.city));
+      if (l.found_from) meta.push(esc(l.found_from));
       return '<div class="lead-card" data-id="' + l.id + '">' +
         '<div class="lead-row">' +
           '<div class="lead-info">' +
-            "<h3>" + priorityDot(l.priority) + esc(l.school_name) + "</h3>" +
-            '<div class="lead-contact">' + esc(l.contact_name || "No contact") +
-            (l.contact_role ? " · " + esc(l.contact_role) : "") + "</div>" +
+            "<h3>" + priorityDot(l.priority) + countryFlag(l.country) + '<span class="school-name">' + esc(l.school_name) + "</span></h3>" +
+            '<div class="lead-meta">' + (meta.length ? meta.join('<span class="sep">/</span>') : '<span style="color:var(--text-faint)">No contact</span>') + "</div>" +
           "</div>" +
           '<span class="status-chip status-' + slugify(l.status) + '">' + l.status + "</span>" +
           '<span class="lead-followup ' + fClass + '">' +
@@ -380,15 +351,24 @@
 
     var suggested = NEXT_ACTIONS[lead.status] || "";
 
+    // Count emails sent/received for this lead
+    var acts = activities[id] || [];
+    var emailsSent = acts.filter(function (a) { return a.type === "email_sent"; }).length;
+    var repliesReceived = acts.filter(function (a) { return a.type === "email_received"; }).length;
+
     el.innerHTML =
-      '<div class="next-action-box"><strong>Suggested next:</strong> ' + esc(lead.next_action || suggested) + "</div>" +
+      '<div class="next-action-box"><span class="label">Next:</span> ' + esc(lead.next_action || suggested) + "</div>" +
       '<div class="quick-actions">' +
-        '<button class="btn btn-sm btn-accent" data-action="email-initial">Email — Initial Outreach</button>' +
-        '<button class="btn btn-sm btn-ghost" data-action="email-followup">Email — Follow Up</button>' +
-        '<button class="btn btn-sm btn-ghost" data-action="email-meeting">Email — After Meeting</button>' +
-        '<button class="btn btn-sm btn-success" data-action="whatsapp">WhatsApp Message</button>' +
-        '<button class="btn btn-sm btn-ghost" data-action="copy">Copy Prototype Link</button>' +
+        '<button class="btn btn-sm btn-accent" data-action="compose-email">Compose Email</button>' +
+        '<button class="btn btn-sm btn-success" data-action="whatsapp">WhatsApp</button>' +
+        '<button class="btn btn-sm btn-ghost" data-action="copy">Copy Link</button>' +
+        '<button class="btn btn-sm btn-warn" data-action="mark-reply">Mark Reply Received</button>' +
       "</div>" +
+      '<div style="display:flex;gap:1rem;margin-bottom:1rem;font-size:0.78rem;color:var(--text-dim);">' +
+        '<span>Emails sent: <strong style="color:var(--accent)">' + emailsSent + '</strong></span>' +
+        '<span>Replies: <strong style="color:var(--success)">' + repliesReceived + '</strong></span>' +
+      '</div>' +
+      '<div id="email-compose-' + id + '"></div>' +
       '<div class="detail-grid">' +
         '<div>' +
           '<div class="detail-section"><h4>Contact</h4>' +
@@ -399,9 +379,14 @@
             detailField("WhatsApp", lead.whatsapp, lead.whatsapp ? "https://wa.me/" + cleanPhone(lead.whatsapp) : "") +
           "</div>" +
           '<div class="detail-section"><h4>School</h4>' +
+            detailField("Country", lead.country) +
             detailField("City", lead.city) +
             detailField("Address", lead.address) +
             detailField("Website", lead.website, lead.website) +
+            (lead.website_issue
+              ? '<div class="detail-field"><label>Issue</label><div class="val"><span class="issue-tag">' + esc(lead.website_issue) + '</span></div></div>'
+              : '<div class="detail-field"><label>Issue</label><div class="val"><span class="issue-tag none">No website / None noted</span></div></div>') +
+            detailField("Found From", lead.found_from) +
             detailField("Source", lead.source) +
             detailField("Prototype", lead.prototype_url, lead.prototype_url) +
           "</div>" +
@@ -474,11 +459,10 @@
     el.querySelectorAll("[data-action]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var a = btn.dataset.action;
-        if (a === "email-initial") composeEmail(lead, "initial");
-        else if (a === "email-followup") composeEmail(lead, "followup");
-        else if (a === "email-meeting") composeEmail(lead, "after_meeting");
+        if (a === "compose-email") showEmailCompose(id);
         else if (a === "whatsapp") openWhatsApp(lead);
         else if (a === "copy") copyLink(lead);
+        else if (a === "mark-reply") markReplyReceived(id);
       });
     });
   }
@@ -543,6 +527,115 @@
     el.querySelector("#cancel-act-btn").addEventListener("click", function () { el.innerHTML = ""; });
   }
 
+  // ---- Email compose panel (inside lead detail) ----
+  function showEmailCompose(leadId) {
+    var lead = findLead(leadId);
+    if (!lead) return;
+    var el = document.getElementById("email-compose-" + leadId);
+    if (!el) return;
+
+    // Default to initial if no emails sent, otherwise followup
+    var acts = activities[leadId] || [];
+    var hasSent = acts.some(function (a) { return a.type === "email_sent"; });
+    var hasMeeting = acts.some(function (a) { return a.type === "meeting"; });
+    var defaultTpl = hasMeeting ? "after_meeting" : (hasSent ? "followup" : "initial");
+    var tpl = EMAIL_TEMPLATES[defaultTpl];
+    var subject = fillTemplate(tpl.subject, lead);
+    var body = fillTemplate(tpl.body, lead);
+
+    el.innerHTML =
+      '<div class="email-compose">' +
+        '<div class="template-pills">' +
+          '<span class="template-pill' + (defaultTpl === "initial" ? " active" : "") + '" data-tpl="initial">Initial Outreach</span>' +
+          '<span class="template-pill' + (defaultTpl === "followup" ? " active" : "") + '" data-tpl="followup">Follow Up</span>' +
+          '<span class="template-pill' + (defaultTpl === "after_meeting" ? " active" : "") + '" data-tpl="after_meeting">After Meeting</span>' +
+        '</div>' +
+        '<div class="field"><label>To</label><input type="email" id="compose-to" value="' + esc(lead.email || "") + '" placeholder="school@email.com" /></div>' +
+        '<div class="field"><label>Subject</label><input type="text" id="compose-subject" value="' + esc(subject) + '" /></div>' +
+        '<div class="field"><label>Body</label><textarea id="compose-body" rows="8">' + esc(body) + '</textarea></div>' +
+        '<div class="compose-actions">' +
+          '<button class="btn btn-sm btn-accent" id="compose-send">Open in Gmail</button>' +
+          '<button class="btn btn-sm btn-success" id="compose-mark-sent">Mark as Sent</button>' +
+          '<button class="btn btn-sm btn-ghost" id="compose-cancel">Close</button>' +
+          '<span class="compose-hint">Opens your email client with this message pre-filled</span>' +
+        '</div>' +
+      '</div>';
+
+    // Template pill switching
+    el.querySelectorAll(".template-pill").forEach(function (pill) {
+      pill.addEventListener("click", function () {
+        el.querySelectorAll(".template-pill").forEach(function (p) { p.classList.remove("active"); });
+        pill.classList.add("active");
+        var t = EMAIL_TEMPLATES[pill.dataset.tpl];
+        el.querySelector("#compose-subject").value = fillTemplate(t.subject, lead);
+        el.querySelector("#compose-body").value = fillTemplate(t.body, lead);
+      });
+    });
+
+    // Open in Gmail (mailto)
+    el.querySelector("#compose-send").addEventListener("click", function () {
+      var to = el.querySelector("#compose-to").value;
+      var subj = el.querySelector("#compose-subject").value;
+      var b = el.querySelector("#compose-body").value;
+      window.open("mailto:" + encodeURIComponent(to) + "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(b), "_blank");
+    });
+
+    // Mark as Sent — log the email as an activity
+    el.querySelector("#compose-mark-sent").addEventListener("click", async function () {
+      var subj = el.querySelector("#compose-subject").value;
+      var b = el.querySelector("#compose-body").value;
+      var to = el.querySelector("#compose-to").value;
+      try {
+        await addActivity({
+          lead_id: leadId,
+          type: "email_sent",
+          subject: "Sent: " + subj,
+          body: "To: " + to + "\n\n" + b,
+        });
+        // Auto-update status to Emailed if currently New or Researching
+        if (lead.status === "New" || lead.status === "Researching") {
+          lead.status = "Emailed";
+          var d = new Date(); d.setDate(d.getDate() + 3);
+          lead.follow_up_date = dateStr(d);
+          lead.next_action = "Follow up if no reply in 3 days";
+          await saveLead({ id: leadId, status: "Emailed", follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+        }
+        activities[leadId] = await fetchActivities(leadId);
+        leads = await fetchLeads();
+        renderAll();
+        renderLeadDetail(leadId);
+        toast("Email logged as sent");
+      } catch (e) { toast("Error: " + e.message); }
+    });
+
+    el.querySelector("#compose-cancel").addEventListener("click", function () { el.innerHTML = ""; });
+  }
+
+  async function markReplyReceived(leadId) {
+    var lead = findLead(leadId);
+    if (!lead) return;
+    try {
+      await addActivity({
+        lead_id: leadId,
+        type: "email_received",
+        subject: "Reply received from " + (lead.contact_name || lead.school_name),
+      });
+      // Auto-update status to Replied
+      if (lead.status === "Emailed") {
+        lead.status = "Replied";
+        lead.next_action = "Schedule a meeting or call";
+        var d = new Date(); d.setDate(d.getDate() + 1);
+        lead.follow_up_date = dateStr(d);
+        await saveLead({ id: leadId, status: "Replied", follow_up_date: lead.follow_up_date, next_action: lead.next_action });
+      }
+      activities[leadId] = await fetchActivities(leadId);
+      leads = await fetchLeads();
+      renderAll();
+      renderLeadDetail(leadId);
+      toast("Reply logged — status updated");
+    } catch (e) { toast("Error: " + e.message); }
+  }
+
   // ---- Add / Edit lead modal ----
   function showLeadModal(lead) {
     var isEdit = !!lead;
@@ -552,38 +645,56 @@
 
     document.getElementById("modal-content").innerHTML =
       "<h3>" + (isEdit ? "Edit Lead" : "Add New Lead") + "</h3>" +
-      '<div class="field-row">' +
-        '<div class="field"><label>School Name *</label><input type="text" id="m-name" value="' + esc(lead.school_name || "") + '" required /></div>' +
+      '<p class="modal-subtitle">' + (isEdit ? "Update school details below." : "Add a school you want to pitch.") + "</p>" +
+
+      // -- School info --
+      '<div class="form-divider">School Info</div>' +
+      '<div class="field"><label>School Name *</label><input type="text" id="m-name" value="' + esc(lead.school_name || "") + '" required /></div>' +
+      '<div class="field-row-3">' +
+        '<div class="field"><label>Country</label><select id="m-country">' +
+          COUNTRIES.map(function (c) { return '<option' + (c === (lead.country || "Pakistan") ? " selected" : "") + ">" + c + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>City</label><input type="text" id="m-city" value="' + esc(lead.city || "") + '" /></div>' +
         '<div class="field"><label>School Slug</label><input type="text" id="m-slug" value="' + esc(lead.school_slug || "") + '" placeholder="e.g. msl-clifton" /></div>' +
-      "</div>" +
-      '<div class="field-row">' +
-        '<div class="field"><label>Contact Name</label><input type="text" id="m-contact" value="' + esc(lead.contact_name || "") + '" /></div>' +
-        '<div class="field"><label>Role</label><input type="text" id="m-role" value="' + esc(lead.contact_role || "") + '" placeholder="Principal, Owner..." /></div>' +
-      "</div>" +
-      '<div class="field-row">' +
-        '<div class="field"><label>Email</label><input type="email" id="m-email" value="' + esc(lead.email || "") + '" /></div>' +
-        '<div class="field"><label>Phone</label><input type="tel" id="m-phone" value="' + esc(lead.phone || "") + '" /></div>' +
-      "</div>" +
-      '<div class="field-row">' +
-        '<div class="field"><label>WhatsApp</label><input type="tel" id="m-whatsapp" value="' + esc(lead.whatsapp || "") + '" placeholder="+92 300 ..." /></div>' +
-        '<div class="field"><label>City</label><input type="text" id="m-city" value="' + esc(lead.city || "Karachi") + '" /></div>' +
       "</div>" +
       '<div class="field"><label>Address</label><input type="text" id="m-address" value="' + esc(lead.address || "") + '" /></div>' +
       '<div class="field-row">' +
         '<div class="field"><label>Website</label><input type="url" id="m-website" value="' + esc(lead.website || "") + '" placeholder="https://..." /></div>' +
-        '<div class="field"><label>Source</label><select id="m-source">' +
-          '<option value="">Select...</option>' +
-          SOURCES.map(function (s) { return '<option' + (s === lead.source ? " selected" : "") + ">" + s + "</option>"; }).join("") +
-        "</select></div>" +
+        '<div class="field"><label>Website Issue</label><input type="text" id="m-website-issue" value="' + esc(lead.website_issue || "") + '" placeholder="e.g. Outdated, no mobile, slow..." /></div>' +
       "</div>" +
-      '<div class="field"><label>Prototype URL</label><input type="url" id="m-proto" value="' + esc(lead.prototype_url || "") + '" placeholder="https://your-site.vercel.app/school-slug/" /></div>' +
+
+      // -- Contact --
+      '<div class="form-divider">Contact Person</div>' +
       '<div class="field-row">' +
+        '<div class="field"><label>Contact Name</label><input type="text" id="m-contact" value="' + esc(lead.contact_name || "") + '" /></div>' +
+        '<div class="field"><label>Role</label><input type="text" id="m-role" value="' + esc(lead.contact_role || "") + '" placeholder="Principal, Owner..." /></div>' +
+      "</div>" +
+      '<div class="field-row-3">' +
+        '<div class="field"><label>Email</label><input type="email" id="m-email" value="' + esc(lead.email || "") + '" /></div>' +
+        '<div class="field"><label>Phone</label><input type="tel" id="m-phone" value="' + esc(lead.phone || "") + '" /></div>' +
+        '<div class="field"><label>WhatsApp</label><input type="tel" id="m-whatsapp" value="' + esc(lead.whatsapp || "") + '" placeholder="+92 300 ..." /></div>' +
+      "</div>" +
+
+      // -- Pipeline --
+      '<div class="form-divider">Pipeline</div>' +
+      '<div class="field-row-3">' +
         '<div class="field"><label>Status</label><select id="m-status">' +
           STATUSES.map(function (s) { return '<option' + (s === (lead.status || "New") ? " selected" : "") + ">" + s + "</option>"; }).join("") +
         "</select></div>" +
         '<div class="field"><label>Priority</label><select id="m-priority">' +
           PRIORITIES.map(function (p) { return '<option' + (p === (lead.priority || "Warm") ? " selected" : "") + ">" + p + "</option>"; }).join("") +
         "</select></div>" +
+        '<div class="field"><label>Source</label><select id="m-source">' +
+          '<option value="">Select...</option>' +
+          SOURCES.map(function (s) { return '<option' + (s === lead.source ? " selected" : "") + ">" + s + "</option>"; }).join("") +
+        "</select></div>" +
+      "</div>" +
+      '<div class="field-row">' +
+        '<div class="field"><label>Found From</label><select id="m-found-from">' +
+          '<option value="">Where did you find this school?</option>' +
+          FOUND_FROM.map(function (f) { return '<option' + (f === lead.found_from ? " selected" : "") + ">" + f + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>Prototype URL</label><input type="url" id="m-proto" value="' + esc(lead.prototype_url || "") + '" placeholder="https://your-site.vercel.app/school/" /></div>' +
       "</div>" +
       '<div class="field"><label>Notes</label><textarea id="m-notes" rows="2">' + esc(lead.notes || "") + "</textarea></div>" +
       '<div class="modal-actions">' +
@@ -603,9 +714,12 @@
         email: document.getElementById("m-email").value.trim() || null,
         phone: document.getElementById("m-phone").value.trim() || null,
         whatsapp: document.getElementById("m-whatsapp").value.trim() || null,
+        country: document.getElementById("m-country").value || "Pakistan",
         city: document.getElementById("m-city").value.trim() || null,
         address: document.getElementById("m-address").value.trim() || null,
         website: document.getElementById("m-website").value.trim() || null,
+        website_issue: document.getElementById("m-website-issue").value.trim() || null,
+        found_from: document.getElementById("m-found-from").value || null,
         source: document.getElementById("m-source").value || null,
         prototype_url: document.getElementById("m-proto").value.trim() || null,
         status: document.getElementById("m-status").value,
@@ -726,8 +840,21 @@
     return '<span class="priority-dot priority-' + p.toLowerCase() + '"></span>';
   }
 
+  var COUNTRY_FLAGS = {
+    "Pakistan": "PK", "Saudi Arabia": "SA", "USA": "US", "UAE": "AE",
+    "UK": "GB", "Canada": "CA",
+  };
+  function countryFlag(country) {
+    if (!country) return "";
+    var code = COUNTRY_FLAGS[country];
+    if (!code) return "";
+    // Convert country code to flag emoji via regional indicator symbols
+    var flag = String.fromCodePoint(0x1F1E6 + code.charCodeAt(0) - 65, 0x1F1E6 + code.charCodeAt(1) - 65);
+    return '<span class="country-flag">' + flag + "</span> ";
+  }
+
   function detailField(label, val, href) {
-    if (!val) return '<div class="detail-field"><label>' + label + '</label><div class="val" style="color:var(--text-dim)">—</div></div>';
+    if (!val) return '<div class="detail-field"><label>' + label + '</label><div class="val empty">—</div></div>';
     var inner = href ? '<a href="' + esc(href) + '" target="_blank">' + esc(val) + "</a>" : esc(val);
     return '<div class="detail-field"><label>' + label + '</label><div class="val">' + inner + "</div></div>";
   }
@@ -742,6 +869,180 @@
     setTimeout(function () { el.remove(); }, 2500);
   }
 
+  // ---- CSV Bulk Upload ----
+  var csvData = []; // parsed rows waiting to be imported
+
+  function toggleUploadZone() {
+    var zone = document.getElementById("upload-zone");
+    zone.classList.toggle("visible");
+    if (!zone.classList.contains("visible")) {
+      csvData = [];
+      zone.querySelector(".upload-preview").innerHTML = "";
+      zone.querySelector(".upload-count").textContent = "";
+      zone.querySelector(".upload-actions").innerHTML = "";
+    }
+  }
+
+  function setupUploadZone() {
+    var zone = document.getElementById("upload-zone");
+    if (!zone) return;
+    var fileInput = zone.querySelector('input[type="file"]');
+
+    zone.addEventListener("click", function (e) {
+      if (e.target === zone || e.target.closest(".upload-zone-icon") || e.target.closest("h3") || e.target.closest("p")) {
+        fileInput.click();
+      }
+    });
+    zone.addEventListener("dragover", function (e) { e.preventDefault(); zone.classList.add("dragover"); });
+    zone.addEventListener("dragleave", function () { zone.classList.remove("dragover"); });
+    zone.addEventListener("drop", function (e) {
+      e.preventDefault(); zone.classList.remove("dragover");
+      var file = e.dataTransfer.files[0];
+      if (file) handleCSVFile(file);
+    });
+    fileInput.addEventListener("change", function () {
+      if (fileInput.files[0]) handleCSVFile(fileInput.files[0]);
+      fileInput.value = "";
+    });
+  }
+
+  function handleCSVFile(file) {
+    var ext = file.name.split(".").pop().toLowerCase();
+    if (ext !== "csv") {
+      toast("Please upload a .csv file. Save your Excel as CSV first.");
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var text = e.target.result;
+      csvData = parseCSV(text);
+      if (!csvData.length) { toast("No data rows found in CSV"); return; }
+      renderCSVPreview();
+    };
+    reader.readAsText(file);
+  }
+
+  function parseCSV(text) {
+    var lines = text.split(/\r?\n/).filter(function (l) { return l.trim(); });
+    if (lines.length < 2) return [];
+    var headers = parseCSVLine(lines[0]).map(function (h) { return h.trim().toLowerCase().replace(/\s+/g, "_"); });
+    var rows = [];
+    for (var i = 1; i < lines.length; i++) {
+      var vals = parseCSVLine(lines[i]);
+      var obj = {};
+      headers.forEach(function (h, idx) { obj[h] = (vals[idx] || "").trim(); });
+      if (obj.school_name || obj.name || obj.school) rows.push(obj);
+    }
+    return rows;
+  }
+
+  function parseCSVLine(line) {
+    var result = [];
+    var current = "";
+    var inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+        else if (ch === '"') inQuotes = false;
+        else current += ch;
+      } else {
+        if (ch === '"') inQuotes = true;
+        else if (ch === ",") { result.push(current); current = ""; }
+        else current += ch;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  // Map common CSV column names to our DB fields
+  var CSV_FIELD_MAP = {
+    school_name: "school_name", name: "school_name", school: "school_name",
+    contact_name: "contact_name", contact: "contact_name", person: "contact_name",
+    contact_role: "contact_role", role: "contact_role", position: "contact_role",
+    email: "email", email_address: "email",
+    phone: "phone", phone_number: "phone", tel: "phone",
+    whatsapp: "whatsapp", wa: "whatsapp",
+    country: "country",
+    city: "city", town: "city",
+    address: "address", location: "address",
+    website: "website", url: "website", site: "website",
+    website_issue: "website_issue", issue: "website_issue", problem: "website_issue",
+    found_from: "found_from", found: "found_from", source_detail: "found_from",
+    source: "source",
+    notes: "notes", note: "notes", comments: "notes",
+    priority: "priority",
+    status: "status",
+    prototype_url: "prototype_url", prototype: "prototype_url",
+  };
+
+  function mapCSVRow(row) {
+    var lead = { status: "New", priority: "Warm", country: "Pakistan" };
+    Object.keys(row).forEach(function (key) {
+      var mapped = CSV_FIELD_MAP[key];
+      if (mapped && row[key]) lead[mapped] = row[key];
+    });
+    return lead;
+  }
+
+  function renderCSVPreview() {
+    var zone = document.getElementById("upload-zone");
+    var countEl = zone.querySelector(".upload-count");
+    var previewEl = zone.querySelector(".upload-preview");
+    var actionsEl = zone.querySelector(".upload-actions");
+    var mapped = csvData.map(mapCSVRow);
+
+    countEl.textContent = mapped.length + " school" + (mapped.length !== 1 ? "s" : "") + " found in CSV";
+
+    // Show preview table
+    var cols = ["school_name", "country", "city", "contact_name", "email", "website", "website_issue", "found_from"];
+    var colLabels = ["School", "Country", "City", "Contact", "Email", "Website", "Issue", "Found From"];
+    var html = "<table><thead><tr>";
+    colLabels.forEach(function (c) { html += "<th>" + c + "</th>"; });
+    html += "</tr></thead><tbody>";
+    mapped.slice(0, 50).forEach(function (r) {
+      html += "<tr>";
+      cols.forEach(function (c) { html += "<td>" + esc(r[c] || "—") + "</td>"; });
+      html += "</tr>";
+    });
+    if (mapped.length > 50) html += '<tr><td colspan="' + cols.length + '" style="text-align:center;color:var(--text-dim);">... and ' + (mapped.length - 50) + " more</td></tr>";
+    html += "</tbody></table>";
+    previewEl.innerHTML = html;
+
+    actionsEl.innerHTML =
+      '<button class="btn btn-accent" id="csv-import-btn">Import ' + mapped.length + " Leads</button>" +
+      '<button class="btn btn-ghost" id="csv-cancel-btn">Cancel</button>';
+
+    actionsEl.querySelector("#csv-import-btn").addEventListener("click", importCSV);
+    actionsEl.querySelector("#csv-cancel-btn").addEventListener("click", toggleUploadZone);
+  }
+
+  async function importCSV() {
+    var mapped = csvData.map(mapCSVRow);
+    var btn = document.getElementById("csv-import-btn");
+    btn.textContent = "Importing...";
+    btn.disabled = true;
+
+    var success = 0;
+    var errors = 0;
+    for (var i = 0; i < mapped.length; i++) {
+      try {
+        await saveLead(mapped[i]);
+        success++;
+      } catch (e) {
+        errors++;
+      }
+      // Update progress
+      btn.textContent = "Importing... " + (i + 1) + "/" + mapped.length;
+    }
+
+    leads = await fetchLeads();
+    renderAll();
+    toggleUploadZone();
+    toast(success + " leads imported" + (errors ? ", " + errors + " failed" : ""));
+  }
+
   // ---- Expose ----
   // Listen for search events from the page
   document.addEventListener("crm-search", function (e) {
@@ -749,5 +1050,9 @@
     renderLeadList();
   });
 
-  window.CubicoCRM = { init: init, showAddLead: function () { showLeadModal(null); } };
+  window.CubicoCRM = {
+    init: init,
+    showAddLead: function () { showLeadModal(null); },
+    toggleUpload: toggleUploadZone,
+  };
 })();

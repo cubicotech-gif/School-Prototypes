@@ -35,15 +35,28 @@
     </header>
 
     <!-- Pipeline summary -->
-    <div id="pipeline" class="pipeline"></div>
+    <div id="pipeline" class="stats-bar"></div>
 
     <!-- Follow-up alerts -->
     <div id="alerts" class="alerts"></div>
 
     <!-- Toolbar -->
     <div class="toolbar">
-      <input type="text" class="toolbar-search" id="search-input" placeholder="Search schools, contacts, emails..." />
+      <input type="text" class="toolbar-search" id="search-input" placeholder="Search schools, contacts, cities, countries..." />
+      <button class="btn btn-ghost" onclick="CubicoCRM.toggleUpload()">Upload CSV</button>
       <button class="btn btn-accent" onclick="CubicoCRM.showAddLead()">+ Add Lead</button>
+    </div>
+
+    <!-- CSV Upload Zone -->
+    <div id="upload-zone" class="upload-zone">
+      <div class="upload-zone-icon">CSV</div>
+      <h3>Import Schools from CSV</h3>
+      <p>Drag &amp; drop a .csv file here, or click to browse. Save your Excel as CSV first.</p>
+      <p style="font-size:0.72rem;color:var(--text-faint);">Columns: school_name, country, city, contact_name, email, phone, whatsapp, website, website_issue, found_from, source, notes</p>
+      <input type="file" accept=".csv" />
+      <div class="upload-count"></div>
+      <div class="upload-preview"></div>
+      <div class="upload-actions"></div>
     </div>
 
     <!-- Lead list -->
