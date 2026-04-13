@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Cubico CRM — School Lead Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/shared/crm-styles.css" />
+</head>
+<body>
+
+  <!-- Password gate -->
+  <div id="password-gate">
+    <div class="gate-card">
+      <div class="gate-tag">Cubico · CRM</div>
+      <h2>School Lead Tracker</h2>
+      <p>Enter the admin password to access the CRM.</p>
+      <form id="password-form">
+        <input type="password" id="password-input" placeholder="Admin password" autocomplete="current-password" required />
+        <button type="submit">Unlock</button>
+        <div id="password-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CRM UI -->
+  <div class="crm-container">
+    <header class="crm-header">
+      <div class="brand-tag">Cubico · CRM</div>
+      <h1>School Lead Tracker</h1>
+      <p>Track every school you pitch — from first email to signed deal. Click a lead to expand details, log activity, and send emails.</p>
+    </header>
+
+    <!-- Pipeline summary -->
+    <div id="pipeline" class="pipeline"></div>
+
+    <!-- Follow-up alerts -->
+    <div id="alerts" class="alerts"></div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <input type="text" class="toolbar-search" id="search-input" placeholder="Search schools, contacts, emails..." />
+      <button class="btn btn-accent" onclick="CubicoCRM.showAddLead()">+ Add Lead</button>
+    </div>
+
+    <!-- Lead list -->
+    <div id="lead-list" class="lead-list"></div>
+  </div>
+
+  <!-- Modal overlay -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" id="modal-content"></div>
+  </div>
+
+  <script src="/supabase-config.js"></script>
+  <script src="/shared/crm.js"></script>
+  <script>
+    CubicoCRM.init();
+    document.getElementById("search-input").addEventListener("input", function () {
+      // Expose search to CRM — trigger re-render via custom event
+      var event = new CustomEvent("crm-search", { detail: this.value });
+      document.dispatchEvent(event);
+    });
+  </script>
+</body>
+</html>
