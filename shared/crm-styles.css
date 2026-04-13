@@ -142,6 +142,21 @@ body {
 .alert-text { flex: 1; font-size: 0.825rem; }
 .alert-text strong { font-weight: 600; }
 .alert-date { font-size: 0.72rem; opacity: 0.8; white-space: nowrap; }
+.alert-actions { display: flex; gap: 0.25rem; flex-shrink: 0; }
+.alert-btn {
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  color: inherit;
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.alert-btn:hover { background: rgba(255,255,255,0.18); }
 
 /* ============ Toolbar ============ */
 .toolbar {

@@ -295,26 +295,59 @@
     if (!overdue.length && !todayItems.length) { el.innerHTML = ""; return; }
 
     var html = "";
-    overdue.forEach(function (l) {
-      html += '<div class="alert alert-overdue" data-id="' + l.id + '">';
-      html += '<span class="alert-icon">!</span>';
-      html += '<span class="alert-text"><strong>' + esc(l.school_name) + "</strong> — overdue follow-up</span>";
-      html += '<span class="alert-date">was due ' + formatDate(l.follow_up_date) + "</span></div>";
-    });
-    todayItems.forEach(function (l) {
-      html += '<div class="alert alert-today" data-id="' + l.id + '">';
-      html += '<span class="alert-icon">*</span>';
-      html += '<span class="alert-text"><strong>' + esc(l.school_name) + "</strong> — follow up today</span>";
-      html += '<span class="alert-date">today</span></div>';
-    });
+    function alertRow(l, cls, dateText) {
+      return '<div class="alert ' + cls + '" data-id="' + l.id + '">' +
+        '<span class="alert-icon">' + (cls === "alert-overdue" ? "!" : "*") + '</span>' +
+        '<span class="alert-text"><strong>' + esc(l.school_name) + '</strong> — ' +
+          (cls === "alert-overdue" ? "overdue" : "follow up today") + '</span>' +
+        '<span class="alert-date">' + dateText + '</span>' +
+        '<div class="alert-actions">' +
+          '<button class="alert-btn" data-alert-action="email" title="Send email">@</button>' +
+          '<button class="alert-btn" data-alert-action="snooze" title="Snooze 2 days">+2d</button>' +
+          '<button class="alert-btn" data-alert-action="done" title="Mark done">ok</button>' +
+        '</div>' +
+      '</div>';
+    }
+    overdue.forEach(function (l) { html += alertRow(l, "alert-overdue", "due " + formatDate(l.follow_up_date)); });
+    todayItems.forEach(function (l) { html += alertRow(l, "alert-today", "today"); });
     el.innerHTML = html;
 
+    // Click alert text → expand lead
     el.querySelectorAll(".alert").forEach(function (a) {
-      a.addEventListener("click", function () {
+      a.addEventListener("click", function (e) {
+        if (e.target.closest(".alert-btn")) return;
         expandedLeadId = a.dataset.id;
         renderLeadList();
         var card = document.querySelector('.lead-card[data-id="' + a.dataset.id + '"]');
         if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
+
+    // Quick action buttons on alerts
+    el.querySelectorAll(".alert-btn").forEach(function (btn) {
+      btn.addEventListener("click", async function (e) {
+        e.stopPropagation();
+        var id = btn.closest(".alert").dataset.id;
+        var lead = findLead(id);
+        if (!lead) return;
+        var action = btn.dataset.alertAction;
+        if (action === "email") {
+          composeEmail(lead, "followup");
+        } else if (action === "snooze") {
+          var d = new Date(); d.setDate(d.getDate() + 2);
+          lead.follow_up_date = dateStr(d);
+          await saveLead({ id: id, follow_up_date: lead.follow_up_date });
+          leads = await fetchLeads();
+          renderAll();
+          toast("Snoozed 2 days → " + formatDate(lead.follow_up_date));
+        } else if (action === "done") {
+          lead.follow_up_date = null;
+          lead.next_action = null;
+          await saveLead({ id: id, follow_up_date: null, next_action: null });
+          leads = await fetchLeads();
+          renderAll();
+          toast("Follow-up cleared");
+        }
       });
     });
   }
