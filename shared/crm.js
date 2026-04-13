@@ -945,6 +945,28 @@
     setTimeout(function () { el.remove(); }, 2500);
   }
 
+  // ---- CSV Export ----
+  function exportCSV() {
+    if (!leads.length) return toast("No leads to export");
+    var cols = ["school_name","country","city","address","contact_name","contact_role","email","phone","whatsapp","website","website_issue","found_from","source","status","priority","prototype_url","follow_up_date","next_action","notes","created_at"];
+    var header = cols.join(",");
+    var rows = leads.map(function (l) {
+      return cols.map(function (c) {
+        var val = (l[c] || "").toString().replace(/"/g, '""');
+        return '"' + val + '"';
+      }).join(",");
+    });
+    var csv = header + "\n" + rows.join("\n");
+    var blob = new Blob([csv], { type: "text/csv" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "cubico-leads-" + todayStr() + ".csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Exported " + leads.length + " leads");
+  }
+
   // ---- CSV Bulk Upload ----
   var csvData = []; // parsed rows waiting to be imported
 
@@ -1130,5 +1152,6 @@
     init: init,
     showAddLead: function () { showLeadModal(null); },
     toggleUpload: toggleUploadZone,
+    exportCSV: exportCSV,
   };
 })();
