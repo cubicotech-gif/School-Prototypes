@@ -637,6 +637,28 @@ body {
   background: var(--accent-dim);
 }
 
+/* ============ Tags ============ */
+.lead-tags { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-top: 0.2rem; }
+.lead-tag {
+  display: inline-flex; align-items: center; gap: 0.2rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 100px;
+  font-size: 0.62rem;
+  font-weight: 500;
+  background: var(--purple-dim);
+  color: var(--purple);
+  border: 1px solid rgba(167,139,250,0.15);
+  white-space: nowrap;
+}
+.lead-tag.editable { padding-right: 0.25rem; }
+.tag-remove {
+  background: none; border: none; color: inherit; cursor: pointer;
+  font-size: 0.6rem; font-weight: 700; padding: 0 0.15rem;
+  opacity: 0.6; font-family: inherit;
+}
+.tag-remove:hover { opacity: 1; }
+.tag-container { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+
 /* ============ Dashboard Analytics ============ */
 #dashboard { margin-bottom: 1.5rem; }
 .dash-cards {

@@ -7,6 +7,7 @@
 //   alter table public.leads add column if not exists country text default 'Pakistan';
 //   alter table public.leads add column if not exists website_issue text;
 //   alter table public.leads add column if not exists found_from text;
+//   alter table public.leads add column if not exists tags text;
 //
 // (If starting fresh, use the full create table from v1 first,
 //  then run the alter statements above.)
@@ -22,6 +23,7 @@
   var SOURCES = ["Cold Email", "Referral", "Walk-in", "Social Media", "Website", "Other"];
   var COUNTRIES = ["Pakistan", "Saudi Arabia", "USA", "UAE", "UK", "Canada", "Other"];
   var FOUND_FROM = ["Google Maps", "Google Search", "School Directory", "Facebook", "Instagram", "LinkedIn", "Referral", "Walk-in / Drive-by", "Yellow Pages", "Website Listing", "Other"];
+  var TAG_PRESETS = ["Budget Issue", "Callback Requested", "Decision Maker Found", "Needs Proposal", "Interested", "Not Interested", "Wrong Contact", "No Website", "Outdated Website", "Premium Lead"];
   var ACTIVITY_TYPES = [
     { value: "email_sent", label: "Email Sent" },
     { value: "email_received", label: "Email Received" },
@@ -364,7 +366,8 @@
           (l.email || "").toLowerCase().indexOf(q) >= 0 ||
           (l.city || "").toLowerCase().indexOf(q) >= 0 ||
           (l.country || "").toLowerCase().indexOf(q) >= 0 ||
-          (l.found_from || "").toLowerCase().indexOf(q) >= 0;
+          (l.found_from || "").toLowerCase().indexOf(q) >= 0 ||
+          (l.tags || "").toLowerCase().indexOf(q) >= 0;
       }
       return true;
     });
@@ -396,6 +399,7 @@
           '<div class="lead-info">' +
             "<h3>" + priorityDot(l.priority) + countryFlag(l.country) + '<span class="school-name">' + esc(l.school_name) + "</span></h3>" +
             '<div class="lead-meta">' + (meta.length ? meta.join('<span class="sep">/</span>') : '<span style="color:var(--text-faint)">No contact</span>') + "</div>" +
+            renderTags(l.tags) +
           "</div>" +
           '<span class="status-chip status-' + slugify(l.status) + '">' + l.status + "</span>" +
           '<span class="lead-followup ' + fClass + '">' +
@@ -516,6 +520,11 @@
               '<input type="date" id="edit-followup" value="' + (lead.follow_up_date || "") + '" /></div>' +
             '<div class="field"><label>Next Action</label>' +
               '<input type="text" id="edit-next-action" value="' + esc(lead.next_action || "") + '" placeholder="e.g. Call to schedule meeting" /></div>' +
+            '<div class="field"><label>Tags</label>' +
+              '<div id="tag-container" class="tag-container">' + renderEditableTags(lead.tags, id) + '</div>' +
+              '<select id="add-tag-select" style="margin-top:0.3rem;"><option value="">+ Add tag...</option>' +
+                TAG_PRESETS.map(function (t) { return "<option>" + t + "</option>"; }).join("") +
+              '</select></div>' +
             '<div class="field"><label>Notes</label>' +
               '<textarea id="edit-notes" rows="3">' + esc(lead.notes || "") + "</textarea></div>" +
             '<div style="display:flex;gap:0.5rem;margin-top:0.5rem;">' +
@@ -551,6 +560,23 @@
     el.querySelector("#edit-lead-btn").addEventListener("click", function () { showLeadModal(lead); });
     el.querySelector("#delete-lead-btn").addEventListener("click", function () { confirmDelete(id); });
     el.querySelector("#add-activity-btn").addEventListener("click", function () { showActivityForm(id); });
+
+    // Tag add via dropdown
+    el.querySelector("#add-tag-select").addEventListener("change", async function () {
+      var tag = this.value;
+      if (!tag) return;
+      this.value = "";
+      var current = parseTags(lead.tags);
+      if (current.indexOf(tag) >= 0) return;
+      current.push(tag);
+      lead.tags = current.join(",");
+      await saveLead({ id: id, tags: lead.tags });
+      leads = await fetchLeads();
+      el.querySelector("#tag-container").innerHTML = renderEditableTags(lead.tags, id);
+      bindTagRemove(el, id);
+      renderLeadList();
+    });
+    bindTagRemove(el, id);
 
     // Status change auto-suggests follow-up
     el.querySelector("#edit-status").addEventListener("change", function () {
@@ -977,6 +1003,47 @@
     return '<span class="country-flag">' + flag + "</span> ";
   }
 
+  // ---- Tag helpers ----
+  function parseTags(tagStr) {
+    if (!tagStr) return [];
+    return tagStr.split(",").map(function (t) { return t.trim(); }).filter(Boolean);
+  }
+
+  function renderTags(tagStr) {
+    var tags = parseTags(tagStr);
+    if (!tags.length) return "";
+    return '<div class="lead-tags">' + tags.map(function (t) {
+      return '<span class="lead-tag">' + esc(t) + '</span>';
+    }).join("") + '</div>';
+  }
+
+  function renderEditableTags(tagStr, leadId) {
+    var tags = parseTags(tagStr);
+    if (!tags.length) return '<span style="font-size:0.78rem;color:var(--text-faint)">No tags</span>';
+    return tags.map(function (t) {
+      return '<span class="lead-tag editable">' + esc(t) + ' <button class="tag-remove" data-tag="' + esc(t) + '" data-lead="' + leadId + '">x</button></span>';
+    }).join("");
+  }
+
+  function bindTagRemove(el, leadId) {
+    el.querySelectorAll(".tag-remove").forEach(function (btn) {
+      btn.addEventListener("click", async function (e) {
+        e.stopPropagation();
+        var tag = btn.dataset.tag;
+        var lead = findLead(leadId);
+        if (!lead) return;
+        var current = parseTags(lead.tags).filter(function (t) { return t !== tag; });
+        lead.tags = current.join(",") || null;
+        await saveLead({ id: leadId, tags: lead.tags });
+        leads = await fetchLeads();
+        var container = el.querySelector("#tag-container");
+        if (container) container.innerHTML = renderEditableTags(lead.tags, leadId);
+        bindTagRemove(el, leadId);
+        renderLeadList();
+      });
+    });
+  }
+
   function detailField(label, val, href) {
     if (!val) return '<div class="detail-field"><label>' + label + '</label><div class="val empty">—</div></div>';
     var inner = href ? '<a href="' + esc(href) + '" target="_blank">' + esc(val) + "</a>" : esc(val);
@@ -996,7 +1063,7 @@
   // ---- CSV Export ----
   function exportCSV() {
     if (!leads.length) return toast("No leads to export");
-    var cols = ["school_name","country","city","address","contact_name","contact_role","email","phone","whatsapp","website","website_issue","found_from","source","status","priority","prototype_url","follow_up_date","next_action","notes","created_at"];
+    var cols = ["school_name","country","city","address","contact_name","contact_role","email","phone","whatsapp","website","website_issue","found_from","source","status","priority","tags","prototype_url","follow_up_date","next_action","notes","created_at"];
     var header = cols.join(",");
     var rows = leads.map(function (l) {
       return cols.map(function (c) {
